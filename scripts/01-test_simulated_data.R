@@ -1,18 +1,15 @@
 #### Preamble ####
-# Purpose: Tests the structure and validity of the simulated Australian 
-  #electoral divisions dataset.
-# Author: Rohan Alexander
-# Date: 26 September 2024
-# Contact: rohan.alexander@utoronto.ca
-# License: MIT
+# Purpose: Tests the structure and validity of the simulated school shooting dataset.
+# Author: Yun Chu
+# Date: 22 November 2024
+# Contact: yun.chu@mail.utoronto.ca
+# License: CC BY-NC-SA 4.0
 # Pre-requisites: 
-  # - The `tidyverse` package must be installed and loaded
   # - 00-simulate_data.R must have been run
-# Any other information needed? Make sure you are in the `starter_folder` rproj
+# Any other information needed? None
 
 
 #### Workspace setup ####
-library(tidyverse)
 
 analysis_data <- read_csv("data/00-simulated_data/simulated_data.csv")
 
@@ -26,64 +23,73 @@ if (exists("analysis_data")) {
 
 #### Test data ####
 
-# Check if the dataset has 151 rows
-if (nrow(analysis_data) == 151) {
-  message("Test Passed: The dataset has 151 rows.")
-} else {
-  stop("Test Failed: The dataset does not have 151 rows.")
+# Load necessary library
+library(dplyr)
+
+# Function to test the simulated dataset
+test_simulated_data <- function(data) {
+  # 1. Check the structure of the data
+  cat("\n--- Structure of the Dataset ---\n")
+  str(data)
+  
+  # 2. Check for missing values
+  cat("\n--- Missing Values ---\n")
+  missing_summary <- sapply(data, function(x) sum(is.na(x)))
+  print(missing_summary)
+  
+  # 3. Check unique values for categorical variables
+  cat("\n--- Unique Values in Categorical Variables ---\n")
+  categorical_vars <- c("school_name", "district_name", "school_type", 
+                        "shooting_type", "gender_shooter1", "shooter_relationship1")
+  for (var in categorical_vars) {
+    if (var %in% names(data)) {
+      cat("\n", var, ":\n")
+      print(table(data[[var]]))
+    }
+  }
+  
+  # 4. Check ranges for numerical variables
+  cat("\n--- Summary Statistics for Numerical Variables ---\n")
+  numerical_vars <- c("enrollment", "killed", "injured", "casualties", "age_shooter1")
+  for (var in numerical_vars) {
+    if (var %in% names(data)) {
+      cat("\n", var, ":\n")
+      print(summary(data[[var]]))
+    }
+  }
+  
+  # 5. Check date-related variables
+  if ("date" %in% names(data)) {
+    cat("\n--- Date Variable Checks ---\n")
+    cat("Earliest Date:", min(data$date), "\n")
+    cat("Latest Date:", max(data$date), "\n")
+  }
+  
+  # 6. Check relationships between variables
+  cat("\n--- Variable Relationships ---\n")
+  
+  # Enrollment should always be >= 0
+  if (any(data$enrollment < 0, na.rm = TRUE)) {
+    cat("ERROR: Enrollment has negative values!\n")
+  } else {
+    cat("Enrollment has no negative values.\n")
+  }
+  
+  # Casualties should equal killed + injured
+  if ("casualties" %in% names(data) && "killed" %in% names(data) && "injured" %in% names(data)) {
+    if (!all(data$casualties == (data$killed + data$injured), na.rm = TRUE)) {
+      cat("ERROR: Casualties do not equal killed + injured!\n")
+    } else {
+      cat("Casualties match killed + injured.\n")
+    }
+  }
+  
+  # 7. Visual inspection of distributions
+  cat("\n--- Visualizing Key Distributions ---\n")
+  hist(data$enrollment, main = "Enrollment Distribution", xlab = "Enrollment", col = "blue")
+  hist(data$killed, main = "Killed Distribution", xlab = "Killed", col = "red")
+  hist(data$injured, main = "Injured Distribution", xlab = "Injured", col = "green")
 }
 
-# Check if the dataset has 3 columns
-if (ncol(analysis_data) == 3) {
-  message("Test Passed: The dataset has 3 columns.")
-} else {
-  stop("Test Failed: The dataset does not have 3 columns.")
-}
-
-# Check if all values in the 'division' column are unique
-if (n_distinct(analysis_data$division) == nrow(analysis_data)) {
-  message("Test Passed: All values in 'division' are unique.")
-} else {
-  stop("Test Failed: The 'division' column contains duplicate values.")
-}
-
-# Check if the 'state' column contains only valid Australian state names
-valid_states <- c("New South Wales", "Victoria", "Queensland", "South Australia", 
-                  "Western Australia", "Tasmania", "Northern Territory", 
-                  "Australian Capital Territory")
-
-if (all(analysis_data$state %in% valid_states)) {
-  message("Test Passed: The 'state' column contains only valid Australian state names.")
-} else {
-  stop("Test Failed: The 'state' column contains invalid state names.")
-}
-
-# Check if the 'party' column contains only valid party names
-valid_parties <- c("Labor", "Liberal", "Greens", "National", "Other")
-
-if (all(analysis_data$party %in% valid_parties)) {
-  message("Test Passed: The 'party' column contains only valid party names.")
-} else {
-  stop("Test Failed: The 'party' column contains invalid party names.")
-}
-
-# Check if there are any missing values in the dataset
-if (all(!is.na(analysis_data))) {
-  message("Test Passed: The dataset contains no missing values.")
-} else {
-  stop("Test Failed: The dataset contains missing values.")
-}
-
-# Check if there are no empty strings in 'division', 'state', and 'party' columns
-if (all(analysis_data$division != "" & analysis_data$state != "" & analysis_data$party != "")) {
-  message("Test Passed: There are no empty strings in 'division', 'state', or 'party'.")
-} else {
-  stop("Test Failed: There are empty strings in one or more columns.")
-}
-
-# Check if the 'party' column has at least two unique values
-if (n_distinct(analysis_data$party) >= 2) {
-  message("Test Passed: The 'party' column contains at least two unique values.")
-} else {
-  stop("Test Failed: The 'party' column contains less than two unique values.")
-}
+# Call the function with the simulated data
+test_simulated_data(simulated_data)

@@ -1,10 +1,9 @@
 ---
-title: "My title"
-subtitle: "My subtitle if needed"
+title: "2025 US School Shooting Predictions and Solutions"
+subtitle: "Leveraging Forecasting to Shape Policy and Protect Communities"
 author: 
-  - First author
-  - Another author
-thanks: "Code and data are available at: [https://github.com/RohanAlexander/starter_folder](https://github.com/RohanAlexander/starter_folder)."
+  - Yun Chu
+thanks: "Code and data are available at: https://github.com/chuyun2024/School-Shooting-Analysis."
 date: today
 date-format: long
 abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
@@ -19,7 +18,12 @@ bibliography: references.bib
 #| message: false
 
 library(tidyverse)
-library(palmerpenguins)
+library(ggplot2)
+library(dplyr)
+library(maps)
+
+#### Read data ####
+data <- read_csv("../data/02-analysis_data/analysis_data.csv")
 ```
 
 
@@ -37,65 +41,126 @@ Telegraphing paragraph: The remainder of this paper is structured as follows. @s
 
 
 
-
+Paragraph of Estimand!
 
 
 # Data {#sec-data}
 
 ## Overview
 
-We use the statistical programming language R [@citeR].... Our data [@shelter].... Following @tellingstories, we consider...
+The dataset has 416 entries, with each entry representing a unique school shooting incident. Incidents occurring during after-hours events, accidental gun discharges that only injured the individual handling the firearm, and private suicides that did not endanger other children were excluded from consideration. Additionally, shootings at colleges and universities, which involve young adults rather than children, were not included in the analysis [@washingtonpost_school_shootings]. These entries cover 50 variables that provide information about the schools, locations, date and time of shooting, shooters details, number of killed and injured, and the relationship of the shooter to school, the weapon type and source.
 
-Overview text
+As the federal government does not consistently track school shootings, this dataset from *The Washington Post* fills a critical gap. It was carefully assembled using information from diverse sources, including news articles, open-source databases, law enforcement reports, and direct inquiries to schools and police departments. Although sources like FBI crime reports and local school incident logs were reviewed, they lack the detail and comprehensive coverage of this dataset. Its unparalleled breadth and depth make it the strongest foundation for predictive modeling and generating actionable insights.
+
+We use the statistical programming language R [@citeR] to download, clean, analyze and model the US School Shooting Data. The US School Shooting dataset is downloaded from The Washington Post [@washingtonpost_school_shootings_data] . The following libraries are utilized in this paper:
+
+- tidyverse [@tidyverse2024]
+- dplyr [@dplyr2024]
+- lubridate [@lubridate2024]
+- readr [@readr2024]
+- stringr [@stringr2024]
+- arrow [@arrow2024]
+- testthat [@testthat2024]
+- randomForest [@randomForest2024]
+- ggplot2
+- maps
+
 
 ## Measurement
-	
-Some paragraphs about how we go from a phenomena in the world to an entry in the dataset.
+
+The dataset, compiled by The Washington Post, translates real-world school shooting incidents into structured entries by aggregating information from news articles, open-source databases, law enforcement reports, and direct calls to schools. Only verified incidents, such as shootings during school hours or on school property, were included. Events like after-hours shootings, private suicides, or accidental discharges without other injuries were excluded [@washingtonpost_school_shootings].
+
+## Summary Statistics & Relationship Between Variables
+
+$ Causalities = Killed + Injured $
 
 ## Outcome variables
 
-Add graphs, tables and text. Use sub-sub-headings for each outcome variable or update the subheading to be singular.
+The outcome variable for this analysis is number of causalities for each state in 2025.
 
+@fig-Number_of_Incidents_Over_Time shows the number of school shooting incidents in US since 1999. The number of school shooting incidents almost doubled since 2020 compared with previous years.
 
-
-Some of our data is of penguins (@fig-bills), from @palmerpenguins.
 
 ```{r}
-#| label: fig-bills
-#| fig-cap: Bills of penguins
+#| label: fig-Number_of_Incidents_Over_Time
+#| fig-cap: "Number of US School Shooting Incidents Over Time"
 #| echo: false
 
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = "none") +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
+ggplot(data, aes(x = date)) +
+  geom_histogram(binwidth = 60, fill = '#3FA0FF', color = 'white', alpha = 0.8) +
+  labs(
+    title = "Number of US School Shooting Incidents Over Time",
+    subtitle = "Visualizing school shooting trends in the US",
+    x = "Date",
+    y = "Incident Count"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 13, margin = margin(b = 15)),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, margin = margin(b = 10)),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10)),
+    panel.grid.major = element_line(color = "#E5E5E5"),
+    panel.grid.minor = element_blank()
+  )
+
 ```
 
-Talk more about it.
-
-And also planes (@fig-planes). (You can change the height and width, but don't worry about doing that until you have finished every other aspect of the paper - Quarto will try to make it look nice and the defaults usually work well once you have enough text.)
+@fig-Shooting_Casaulties_by_State visualizes the number of school shooting incidents in US by state for all data since 1999. California, Texas, Florida and North Carolina all have more than 20 school shooting incidents in the past 25 years while other states has less than 20 school shootings.
 
 ```{r}
-#| label: fig-planes
-#| fig-cap: Relationship between wing length and width
+#| label: fig-Shooting_Casaulties_by_State
+#| fig-cap: "US School Shooting Casaulties by State"
 #| echo: false
-#| warning: false
-#| message: false
 
-analysis_data <- read_csv(here::here("data/02-analysis_data/analysis_data.csv"))
+# Aggregate data to calculate total casualties by state
+state_counts <- data %>%
+  group_by(state) %>%
+  summarise(total_casualties = sum(casualties, na.rm = TRUE))  
 
-analysis_data |> 
-  ggplot(aes(x = width, y = length)) +
-  geom_point(alpha = 0.8) +
-  theme_minimal() +
-  labs(x = "Wing width (mm)",
-       y = "Wing length (mm)")
+# Get US map data
+us_map <- map_data("state")
+
+# Ensure state names are in lowercase to match map_data
+state_counts <- state_counts %>%
+  mutate(state = tolower(state))
+
+# Merge map data with shooting casualties data
+map_data <- us_map %>%
+  left_join(state_counts, by = c("region" = "state"))
+
+# Replace NA values in `total_casualties` with 0 (for states with no recorded casualties)
+map_data$total_casualties[is.na(map_data$total_casualties)] <- 0
+
+ggplot(map_data, aes(long, lat, group = group, fill = total_casualties)) +
+  geom_polygon(color = "white") +
+  scale_fill_gradient(
+    low = "#E6F7FF",
+    high = "#0072B2",
+    name = "Total Casualties",
+    breaks = c(0, 50, 100, 150, 200)  # Adjust the breaks based on your data
+  ) +
+  labs(
+    title = "US School Shooting Casualties by State",
+    subtitle = "Number of casualties visualized geographically",
+    x = NULL,
+    y = NULL
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 13, margin = ggplot2::margin(t = 10, b = 10)),
+    plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 10, margin = ggplot2::margin(t = 0, b = 20)),
+    legend.position = "right",  # Alternative: Use "bottom" for a horizontal legend
+    legend.key.height = unit(1, "cm"),  # Adjust legend size
+    axis.text = ggplot2::element_blank(),
+    axis.ticks = ggplot2::element_blank(),
+    panel.grid = ggplot2::element_blank(),
+    plot.margin = ggplot2::margin(t = 20, r = 20, b = 20, l = 20)  # Increase margins for PDF export
+  )
+
+
 ```
-
-Talk way more about it. 
 
 ## Predictor variables
 
@@ -157,7 +222,7 @@ first_model <-
 
 ```{r}
 #| echo: false
-#| eval: true
+#| eval: false
 #| label: tbl-modelresults
 #| tbl-cap: "Explanatory models of flight time based on wing width and wing length"
 #| warning: false
@@ -208,7 +273,7 @@ In @fig-ppcheckandposteriorvsprior-1 we implement a posterior predictive check. 
 In @fig-ppcheckandposteriorvsprior-2 we compare the posterior with the prior. This shows... 
 
 ```{r}
-#| eval: true
+#| eval: false
 #| echo: false
 #| message: false
 #| warning: false
@@ -236,7 +301,7 @@ posterior_vs_prior(first_model) +
 
 ```{r}
 #| echo: false
-#| eval: true
+#| eval: false
 #| message: false
 #| warning: false
 #| label: fig-stanareyouokay
