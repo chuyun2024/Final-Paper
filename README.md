@@ -1,4 +1,4 @@
-# 2025 US School Shooting Forecast
+# 2025 US School Shooting Predictions and Solutions
 
 ## Overview
 
