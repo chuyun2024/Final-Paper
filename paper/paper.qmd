@@ -21,7 +21,9 @@ library(tidyverse)
 library(ggplot2)
 library(dplyr)
 library(maps)
-
+library(knitr)
+library(randomForest)
+library(here)
 #### Read data ####
 data <- read_csv("../data/02-analysis_data/analysis_data.csv")
 ```
@@ -64,7 +66,7 @@ We use the statistical programming language R [@citeR] to download, clean, analy
 - randomForest [@randomForest2024]
 - ggplot2
 - maps
-
+- knitr
 
 ## Measurement
 
@@ -72,39 +74,34 @@ The dataset, compiled by The Washington Post, translates real-world school shoot
 
 ## Summary Statistics & Relationship Between Variables
 
-$ Causalities = Killed + Injured $
+In this dataset, there are three variables that have relationship: $ Causalities = Killed + Injured $.
+
+@tbl-casualties_summary_statistics summarizes the mean, median and standard deviation of casualties from school shooting events in US from 1999 to today. The standard deviation of 3.72 indicates that while most incidents have casualties close to the mean, there is a wide range of variability, with some incidents having significantly higher number of casualties.
+
+```{r}
+#| label: tbl-casualties_summary_statistics
+#| fig-cap: "Summary Statistics for Casualties"
+#| echo: false
+
+# Ensure the data contains the 'casualties' column
+# Calculate the mean, median, and standard deviation
+casualties_summary <- data %>%
+  summarise(
+    Mean = mean(casualties, na.rm = TRUE),
+    Median = median(casualties, na.rm = TRUE),
+    `Standard Deviation` = sd(casualties, na.rm = TRUE)
+  )
+
+# Display the summary in a beautiful table
+kable(casualties_summary, caption = "Summary Statistics for Casualties") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+```
+
 
 ## Outcome variables
 
 The outcome variable for this analysis is number of causalities for each state in 2025.
 
-@fig-Number_of_Incidents_Over_Time shows the number of school shooting incidents in US since 1999. The number of school shooting incidents almost doubled since 2020 compared with previous years.
-
-
-```{r}
-#| label: fig-Number_of_Incidents_Over_Time
-#| fig-cap: "Number of US School Shooting Incidents Over Time"
-#| echo: false
-
-ggplot(data, aes(x = date)) +
-  geom_histogram(binwidth = 60, fill = '#3FA0FF', color = 'white', alpha = 0.8) +
-  labs(
-    title = "Number of US School Shooting Incidents Over Time",
-    subtitle = "Visualizing school shooting trends in the US",
-    x = "Date",
-    y = "Incident Count"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 13, margin = margin(b = 15)),
-    plot.subtitle = element_text(hjust = 0.5, size = 10, margin = margin(b = 10)),
-    axis.title.x = element_text(margin = margin(t = 10)),
-    axis.title.y = element_text(margin = margin(r = 10)),
-    panel.grid.major = element_line(color = "#E5E5E5"),
-    panel.grid.minor = element_blank()
-  )
-
-```
 
 @fig-Shooting_Casaulties_by_State visualizes the number of school shooting incidents in US by state for all data since 1999. California, Texas, Florida and North Carolina all have more than 20 school shooting incidents in the past 25 years while other states has less than 20 school shootings.
 
@@ -116,12 +113,12 @@ ggplot(data, aes(x = date)) +
 # Aggregate data to calculate total casualties by state
 state_counts <- data %>%
   group_by(state) %>%
-  summarise(total_casualties = sum(casualties, na.rm = TRUE))  
+  summarise(total_casualties = sum(casualties, na.rm = TRUE))
 
 # Get US map data
 us_map <- map_data("state")
 
-# Ensure state names are in lowercase to match map_data
+# Ensure state names in state_counts are lowercase to match map_data
 state_counts <- state_counts %>%
   mutate(state = tolower(state))
 
@@ -129,16 +126,17 @@ state_counts <- state_counts %>%
 map_data <- us_map %>%
   left_join(state_counts, by = c("region" = "state"))
 
-# Replace NA values in `total_casualties` with 0 (for states with no recorded casualties)
+# Replace missing values in `total_casualties` with 0 for states with no data
 map_data$total_casualties[is.na(map_data$total_casualties)] <- 0
 
+# Plot the map
 ggplot(map_data, aes(long, lat, group = group, fill = total_casualties)) +
   geom_polygon(color = "white") +
   scale_fill_gradient(
-    low = "#E6F7FF",
-    high = "#0072B2",
+    low = "#E6F7FF",  # Light blue
+    high = "#0072B2",  # Dark blue
     name = "Total Casualties",
-    breaks = c(0, 50, 100, 150, 200)  # Adjust the breaks based on your data
+    breaks = c(0, 50, 100, 150, 200)  # Adjust breaks based on your data
   ) +
   labs(
     title = "US School Shooting Casualties by State",
@@ -164,61 +162,193 @@ ggplot(map_data, aes(long, lat, group = group, fill = total_casualties)) +
 
 ## Predictor variables
 
-Add graphs, tables and text.
+Predictor variables in this analysis is state and year. 
 
-Use sub-sub-headings for each outcome variable and feel free to combine a few into one if they go together naturally.
+ - State represents the state where the schools are located.
+ 
+ - Year represents the shooting year.
+
+@fig-Number_of_Incidents_Over_Time shows the number of school shooting incidents in US since 1999. The number of school shooting incidents almost doubled since 2020 compared with previous years.
 
 
+```{r}
+#| label: fig-Number_of_Incidents_Over_Time
+#| fig-cap: "Number of US School Shooting Incidents Over Time"
+#| echo: false
+#| eval: false
 
+ggplot(data, aes(x = date)) +
+  geom_histogram(binwidth = 60, fill = '#3FA0FF', color = 'white', alpha = 0.8) +
+  labs(
+    title = "Number of US School Shooting Incidents Over Time",
+    subtitle = "Visualizing school shooting trends in the US",
+    x = "Date",
+    y = "Incident Count"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 13, margin = margin(b = 15)),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, margin = margin(b = 10)),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10)),
+    panel.grid.major = element_line(color = "#E5E5E5"),
+    panel.grid.minor = element_blank()
+  )
 
-
+```
 
 
 
 # Model
 
-The goal of our modelling strategy is twofold. Firstly,...
+## Model Set-Up
 
-Here we briefly describe the Bayesian analysis model used to investigate... Background details and diagnostics are included in [Appendix -@sec-model-details].
+To model the total number of casualties resulting from school shooting incidents, a **Random Forest regression model** is employed. The model is designed to predict casualties based on state-level and temporal features derived from the dataset. The Random Forest algorithm is chosen for its robustness to non-linear relationships, its ability to handle interactions among predictors, and its ability to integrate categorical variables without creating dummy variables.
 
-## Model set-up
+The mathematical representation of the model is: $C = f(X_1, X_2, ..., X_p) + \epsilon$
 
-Define $y_i$ as the number of seconds that the plane remained aloft. Then $\beta_i$ is the wing width and $\gamma_i$ is the wing length, both measured in millimeters.  
+where:
 
-\begin{align} 
-y_i|\mu_i, \sigma &\sim \mbox{Normal}(\mu_i, \sigma) \\
-\mu_i &= \alpha + \beta_i + \gamma_i\\
-\alpha &\sim \mbox{Normal}(0, 2.5) \\
-\beta &\sim \mbox{Normal}(0, 2.5) \\
-\gamma &\sim \mbox{Normal}(0, 2.5) \\
-\sigma &\sim \mbox{Exponential}(1)
-\end{align}
+- $C$: The total number of casualties (sum of fatalities and injuries) for a given year and state.  
+- $f(\cdot)$: The function estimated by the Random Forest model, representing the aggregate prediction from all decision trees.  
+- $X_1, X_2, ..., X_p$: Predictors, including:  
+  - $X_1$: Year (numeric), capturing temporal trends.  
+  - $X_2$: State (categorical), capturing regional effects.  
+- $\epsilon$: The error term, representing unobserved factors affecting the number of casualties.  
 
-We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
+## Model Justification
+- **Year** is included to account for temporal trends in school shootings, reflecting potential increases or decreases over time.
+- **State** is treated as a categorical variable to capture location-specific effects, such as differences in legislation, policing, or socioeconomic factors.
+
+The choice of these features aligns with the data section, ensuring that variables with potential predictive value are incorporated without overfitting or introducing unnecessary complexity.
+
+### Assumptions and Limitations
+- **Assumptions**:
+  1. Casualties are conditionally independent given the predictors.
+  2. The relationship between predictors and casualties can be approximated by the ensemble of decision trees.
+  3. Data is representative of underlying trends and free of major sampling biases.
+
+- **Limitations**:
+  1. The model may not generalize well to future data if underlying trends shift dramatically (e.g., policy changes or societal events).
+  2. Random Forests lack explicit interpretability compared to simpler models.
 
 
-### Model justification
+### Software Implementation
+The model is implemented in **R**, using the randomForest [@randomforest] package for training and evaluation.
 
-We expect a positive relationship between the size of the wings and time spent aloft. In particular...
+### Model Validation
+- **Train/Test Splits**:
+  The data is split into training (80%) and test (20%) sets. The model is trained on the former and validated on the latter to ensure generalizability.
 
-We can use maths by including latex between dollar signs, for instance $\theta$.
+- **Evaluation Metrics**:
+  - **Root Mean Squared Error (RMSE)** and **Mean Absolute Error (MAE)** are calculated to assess prediction accuracy.
+  - Final metrics:
+    - RMSE: 1.491141 casualties
+    - MAE: 1.096164 casualties
+
+### Alternative Models Considered
+- **Linear Regression**:
+  - Strengths: Simplicity and interpretability.
+  - Weaknesses: Inadequate for capturing non-linear relationships and interactions present in the data.
+
+- **Gradient Boosting Machines (GBM)**:
+  - Strengths: Often more accurate due to its iterative learning.
+  - Weaknesses: Higher risk of overfitting, more computationally expensive and less intepretibility.
+
+The Random Forest model was chosen over these alternatives for its balance of flexibility, robustness, and interpretability of feature importance.
+
 
 
 # Results
 
 Our results are summarized in @tbl-modelresults.
 
+
 ```{r}
 #| echo: false
 #| eval: true
+#| label: fig-predicted_shooting_visualization
+#| tbl-cap: "Predicted 2025 US School Shootings Numbers"
 #| warning: false
-#| message: false
 
-library(rstanarm)
+#### Step 1: Load the Data and Model ####
+# Load cleaned data
+clean_data <- read.csv("../data/02-analysis_data/no_outlier_data.csv")
 
-first_model <-
-  readRDS(file = here::here("models/first_model.rds"))
+# Ensure 'state' is a factor
+clean_data$state <- as.factor(clean_data$state)
+
+# Load the Random Forest model
+rf_model_clean <- readRDS(file = here::here("models/rf_model.rds"))
+
+#### Step 2: Prepare Data for Predictions ####
+# Year(s) for prediction
+years <- 2025
+
+# Create a data frame with unique states and years
+prediction_data <- expand.grid(
+  year = years,
+  state = unique(clean_data$state)  # Use unique states
+)
+
+# Convert 'state' to a factor and match levels with training data
+prediction_data$state <- factor(prediction_data$state, levels = levels(clean_data$state))
+
+# Ensure no missing levels
+if (any(is.na(prediction_data$state))) {
+  stop("State levels in prediction_data do not match clean_data.")
+}
+
+# Make predictions
+predictions <- predict(rf_model_clean, newdata = prediction_data)
+
+# Add predictions to the data frame
+prediction_data$predicted_casualties <- predictions
+
+#### Step 3: Prepare Map Data ####
+# Get US map data
+us_map <- map_data("state")
+
+# Convert state names in `us_map` to lowercase
+us_map$region <- tolower(us_map$region)
+
+# Convert state in `prediction_data` to lowercase for compatibility
+prediction_data$state <- tolower(as.character(prediction_data$state))
+
+# Merge map data with predictions
+map_data <- us_map %>%
+  left_join(prediction_data, by = c("region" = "state"))
+
+# Fill missing predictions with 0 (optional, avoids grey states)
+map_data$predicted_casualties[is.na(map_data$predicted_casualties)] <- 0
+
+#### Step 4: Plot the Map ####
+ggplot(map_data, aes(long, lat, group = group, fill = predicted_casualties)) +
+  geom_polygon(color = "white") +
+  scale_fill_gradient(
+    low = "#E6F7FF",  # Light blue
+    high = "#0072B2", # Dark blue
+    name = "Casualties"
+  ) +
+  labs(
+    title = "Predicted US School Shooting Casualties by State (2025)",
+    subtitle = "Number of casualties visualized geographically",
+    x = NULL,
+    y = NULL
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 10),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    legend.position = "right",
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
+
 ```
+
 
 ```{r}
 #| echo: false

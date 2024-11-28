@@ -39,44 +39,84 @@ train_data <- train_data %>%
 X <- train_data %>% select(year, state)
 y <- train_data$casualties
 
-# Split data into training and test sets
+#### Cross-Validation for Residual Calculation ####
+
+# Define cross-validation folds
+library(caret)
 set.seed(42)
-train_indices <- sample(nrow(train_data), 0.8 * nrow(train_data))
-X_train <- X[train_indices, ]
-y_train <- y[train_indices]
-X_test <- X[-train_indices, ]
-y_test <- y[-train_indices]
+folds <- createFolds(y, k = 5, list = TRUE)
 
-# Train a Random Forest model
-rf_model <- randomForest(X_train, y_train, ntree = 300)
+# Calculate residuals for each fold
+residuals_all <- numeric()
+for (fold in folds) {
+  train_idx <- setdiff(seq_len(nrow(train_data)), fold)
+  test_idx <- fold
+  
+  X_train_cv <- X[train_idx, ]
+  y_train_cv <- y[train_idx]
+  X_test_cv <- X[test_idx, ]
+  y_test_cv <- y[test_idx]
+  
+  # Train Random Forest on CV fold
+  rf_model_cv <- randomForest(X_train_cv, y_train_cv, ntree = 300)
+  
+  # Predict and calculate residuals
+  y_pred_cv <- predict(rf_model_cv, newdata = X_test_cv)
+  residuals_cv <- y_test_cv - y_pred_cv
+  residuals_all[test_idx] <- residuals_cv
+}
 
-# Evaluate the model on the test set
-y_pred <- predict(rf_model, newdata = X_test)
-mae <- mean(abs(y_test - y_pred))
-rmse <- sqrt(mean((y_test - y_pred)^2))
+# Add residuals to the training data
+train_data$residuals <- residuals_all
 
-# Print evaluation metrics
-cat("Model Evaluation:\n")
-cat("Mean Absolute Error (MAE):", mae, "\n")
-cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+#### Identify and Remove Outliers ####
+# Set a threshold for residuals (e.g., absolute residual > 10)
+outlier_threshold <- 10
+clean_data <- train_data %>% filter(abs(residuals) <= outlier_threshold)
 
-# Prepare future data for 2025 predictions
-future_data <- data.frame(
-  year = 2025,
-  state = unique(train_data$state)  # Predict for all states
-)
+# save clean data after removing outlier
+write_csv(clean_data, "data/02-analysis_data/no_outlier_data.csv")
 
-# Predict casualties for each state in 2025
-future_data$predicted_casualties <- predict(rf_model, newdata = future_data)
+# Verify cleaned data
+cat("Number of rows before cleaning:", nrow(train_data), "\n")
+cat("Number of rows after cleaning:", nrow(clean_data), "\n")
 
-# Output predictions for each state
-cat("\nPredicted Casualties for 2025 (by state):\n")
-print(future_data)
+#### Retrain the Model on Cleaned Data ####
+X_clean <- clean_data %>% select(year, state)
+y_clean <- clean_data$casualties
+
+# Train-test split
+set.seed(42)
+train_indices <- sample(nrow(clean_data), 0.8 * nrow(clean_data))
+X_train_clean <- X_clean[train_indices, ]
+y_train_clean <- y_clean[train_indices]
+X_test_clean <- X_clean[-train_indices, ]
+y_test_clean <- y_clean[-train_indices]
+
+# Train Random Forest model
+rf_model_clean <- randomForest(X_train_clean, y_train_clean, ntree = 300)
+
+# Evaluate the model on the cleaned test set
+y_pred_clean <- predict(rf_model_clean, newdata = X_test_clean)
+mae_clean <- mean(abs(y_test_clean - y_pred_clean))
+rmse_clean <- sqrt(mean((y_test_clean - y_pred_clean)^2))
+
+# Print evaluation metrics for cleaned data
+cat("Model Evaluation after Cleaning:\n")
+cat("Mean Absolute Error (MAE):", mae_clean, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse_clean, "\n")
+
+# Model with outlier removed Residual Plot
+hist(y_test_clean - y_pred_clean, breaks = 30, main = "Residuals After Cleaning", xlab = "Residuals")
+
 
 #### Save model ####
 saveRDS(
-  rf_model,
-  file = "models/first_model.rds"
+  rf_model_clean,
+  file = "models/rf_model.rds"
 )
+
+
+
 
 
