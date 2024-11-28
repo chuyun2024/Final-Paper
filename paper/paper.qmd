@@ -174,7 +174,7 @@ Predictor variables in this analysis is state and year.
 #| label: fig-Number_of_Incidents_Over_Time
 #| fig-cap: "Number of US School Shooting Incidents Over Time"
 #| echo: false
-#| eval: false
+#| eval: true
 
 ggplot(data, aes(x = date)) +
   geom_histogram(binwidth = 60, fill = '#3FA0FF', color = 'white', alpha = 0.8) +
@@ -186,17 +186,23 @@ ggplot(data, aes(x = date)) +
   ) +
   theme_minimal(base_size = 14) +
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 13, margin = margin(b = 15)),
-    plot.subtitle = element_text(hjust = 0.5, size = 10, margin = margin(b = 10)),
-    axis.title.x = element_text(margin = margin(t = 10)),
-    axis.title.y = element_text(margin = margin(r = 10)),
+    plot.title = element_text(
+      hjust = 0.5, 
+      face = "bold", 
+      size = 13
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, 
+      size = 10
+    ),
+    axis.title.x = element_text(),
+    axis.title.y = element_text(),
     panel.grid.major = element_line(color = "#E5E5E5"),
     panel.grid.minor = element_blank()
   )
 
+
 ```
-
-
 
 # Model {#sec-model}
 
