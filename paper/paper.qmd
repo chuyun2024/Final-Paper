@@ -6,9 +6,9 @@ author:
 thanks: "Code and data are available at: https://github.com/chuyun2024/School-Shooting-Analysis."
 date: today
 date-format: long
-abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+abstract: "School shootings in the United States pose a critical challenge with far-reaching impacts. This paper employs a Random Forest regression model to predict state-level casualties for 2025 using historical data from 1999 to the present. The findings reveal a positively skewed distribution of casualties, with states like Georgia, California, and Pennsylvania projected to face the highest numbers. These insights highlight the need for targeted interventions, including enhanced school safety measures and stricter gun control policies. By providing actionable predictions, this study aims to inform policies that reduce school shooting casualties and protect vulnerable populations."
 format: pdf
-number-sections: true
+toc: true
 bibliography: references.bib
 ---
 
@@ -24,31 +24,27 @@ library(maps)
 library(knitr)
 library(randomForest)
 library(here)
+library(kableExtra)
 #### Read data ####
 data <- read_csv("../data/02-analysis_data/analysis_data.csv")
 ```
 
 
-# Introduction
+# Introduction {#sec-intro}
 
-Overview paragraph
+School shootings remain a grave concern in the United States, with devastating consequences for students, educators, and communities. Despite the growing public discourse and policy debates surrounding school safety, little progress has been made in effectively predicting and preventing these tragic incidents. Understanding the patterns and predictors of school shootings is essential for designing evidence-based interventions to protect students and reduce casualties. This paper contributes to this critical issue by leveraging data-driven methodologies to analyze and predict school shooting casualties, with the aim of informing policy and prevention efforts.
 
-Estimand paragraph
+The estimand in this paper is the number of casualties from school shootings across U.S. states for the year 2025. Using historical data from The Washington Post [@washingtonpost_school_shootings], which provides a comprehensive record of school shootings, a Random Forest regression model was developed to predict casualties based on state and temporal features. The analysis includes summary statistics, spatial visualizations, and predictive modeling, providing actionable insights for policymakers. This study fills a critical gap in understanding the state-level distribution of school shooting casualties and offers data-driven recommendations for targeted interventions.
 
-Results paragraph
+A key finding of this study is the uneven distribution of casualties across states, with some states, such as Georgia, California, and Pennsylvania, predicted to experience significantly higher casualties in 2025. This highlights the importance of state-specific policies and resource allocation. The analysis also reveals that the distribution of casualties is positively skewed, with most incidents involving relatively few casualties, but a small number of high-casualty events disproportionately contributing to the overall impact. This information underscore the need for targeted strategies to mitigate the effects of high-casualty incidents.
 
-Why it matters paragraph
+The importance of this study lies in its ability to provide a data-driven foundation for policy and prevention efforts. By identifying high-risk states and understanding the characteristics of high-casualty incidents, this paper aims to guide policymakers in allocating resources effectively and designing interventions that address the underlying factors contributing to school shootings. 
 
-Telegraphing paragraph: The remainder of this paper is structured as follows. @sec-data....
-
-
-
-Paragraph of Estimand!
-
+The structure of this paper is as follows: @sec-data discusses the data, including its sources, measurements, and key variables; @sec-model outlines the model used for prediction, including its justification and validation; @sec-result presents the results, including summary statistics, spatial visualizations, and predictions for 2025; and @sec-discussion concludes with a discussion of the findings, limitations, and recommendations for future research and policy.
 
 # Data {#sec-data}
 
-## Overview
+## Overview {#sec-data-overview}
 
 The dataset has 416 entries, with each entry representing a unique school shooting incident. Incidents occurring during after-hours events, accidental gun discharges that only injured the individual handling the firearm, and private suicides that did not endanger other children were excluded from consideration. Additionally, shootings at colleges and universities, which involve young adults rather than children, were not included in the analysis [@washingtonpost_school_shootings]. These entries cover 50 variables that provide information about the schools, locations, date and time of shooting, shooters details, number of killed and injured, and the relationship of the shooter to school, the weapon type and source.
 
@@ -64,15 +60,17 @@ We use the statistical programming language R [@citeR] to download, clean, analy
 - arrow [@arrow2024]
 - testthat [@testthat2024]
 - randomForest [@randomForest2024]
-- ggplot2
-- maps
-- knitr
+- ggplot2 [@ggplot2]
+- maps [@maps]
+- knitr [@knitr]
+- here [@here]
+- kableExtra [@kableExtra]
 
-## Measurement
+## Measurement {#sec-data-measurement}
 
 The dataset, compiled by The Washington Post, translates real-world school shooting incidents into structured entries by aggregating information from news articles, open-source databases, law enforcement reports, and direct calls to schools. Only verified incidents, such as shootings during school hours or on school property, were included. Events like after-hours shootings, private suicides, or accidental discharges without other injuries were excluded [@washingtonpost_school_shootings].
 
-## Summary Statistics & Relationship Between Variables
+## Summary Statistics & Relationship Between Variables {#sec-data-sumsta}
 
 In this dataset, there are three variables that have relationship: $ Causalities = Killed + Injured $.
 
@@ -98,7 +96,8 @@ kable(casualties_summary, caption = "Summary Statistics for Casualties") %>%
 ```
 
 
-## Outcome variables
+
+## Outcome variables {#sec-data-outvariable}
 
 The outcome variable for this analysis is number of causalities for each state in 2025.
 
@@ -160,7 +159,7 @@ ggplot(map_data, aes(long, lat, group = group, fill = total_casualties)) +
 
 ```
 
-## Predictor variables
+## Predictor variables {#sec-predic-variable}
 
 Predictor variables in this analysis is state and year. 
 
@@ -199,9 +198,9 @@ ggplot(data, aes(x = date)) +
 
 
 
-# Model
+# Model {#sec-model}
 
-## Model Set-Up
+## Model Set-Up {#sec-model-setup}
 
 To model the total number of casualties resulting from school shooting incidents, a **Random Forest regression model** is employed. The model is designed to predict casualties based on state-level and temporal features derived from the dataset. The Random Forest algorithm is chosen for its robustness to non-linear relationships, its ability to handle interactions among predictors, and its ability to integrate categorical variables without creating dummy variables.
 
@@ -216,13 +215,16 @@ where:
   - $X_2$: State (categorical), capturing regional effects.  
 - $\epsilon$: The error term, representing unobserved factors affecting the number of casualties.  
 
-## Model Justification
+
+## Model Justification {#sec-model-justification}
 - **Year** is included to account for temporal trends in school shootings, reflecting potential increases or decreases over time.
 - **State** is treated as a categorical variable to capture location-specific effects, such as differences in legislation, policing, or socioeconomic factors.
 
+Number of trees is selected to be 300 to balance accuracy and prevent overfitting.
+
 The choice of these features aligns with the data section, ensuring that variables with potential predictive value are incorporated without overfitting or introducing unnecessary complexity.
 
-### Assumptions and Limitations
+### Assumptions and Limitations {#sec-model-assumplim}
 - **Assumptions**:
   1. Casualties are conditionally independent given the predictors.
   2. The relationship between predictors and casualties can be approximated by the ensemble of decision trees.
@@ -233,10 +235,10 @@ The choice of these features aligns with the data section, ensuring that variabl
   2. Random Forests lack explicit interpretability compared to simpler models.
 
 
-### Software Implementation
+### Software Implementation {#sec-model-softimp}
 The model is implemented in **R**, using the randomForest [@randomforest] package for training and evaluation.
 
-### Model Validation
+### Model Validation {#sec-model-modelvalidation}
 - **Train/Test Splits**:
   The data is split into training (80%) and test (20%) sets. The model is trained on the former and validated on the latter to ensure generalizability.
 
@@ -246,7 +248,7 @@ The model is implemented in **R**, using the randomForest [@randomforest] packag
     - RMSE: 1.491141 casualties
     - MAE: 1.096164 casualties
 
-### Alternative Models Considered
+### Alternative Models Considered {#sec-model-altmodel}
 - **Linear Regression**:
   - Strengths: Simplicity and interpretability.
   - Weaknesses: Inadequate for capturing non-linear relationships and interactions present in the data.
@@ -259,16 +261,53 @@ The Random Forest model was chosen over these alternatives for its balance of fl
 
 
 
-# Results
+# Results {#sec-result}
 
-Our results are summarized in @tbl-modelresults.
+Since random forest is non-parametric, there is not parameter estimates. ????
 
+## Summary Statistics {#sec-result-summstat}
+
+@tbl-summary_statistics_table shows the summary statistics for predicted 2025 school shooting casualties. On average, each school shooting incident results in approximately 1.59 casualties. At least half of the incidents involve only one casualty. The standard deviation of 1.91 indicates that while many incidents cluster around the mean of 1.59, there is considerable spread, with some incidents resulting in significantly higher casualties. 
 
 ```{r}
 #| echo: false
 #| eval: true
+#| label: tbl-summary_statistics_table
+#| tbl-cap: "Summary Statistics for 2025 US School Shooting Casualties"
+#| warning: false
+
+# Load cleaned data
+clean_data <- read.csv("../data/02-analysis_data/no_outlier_data.csv")
+
+# Calculate summary statistics for the 'casualties' column
+summary_stats <- clean_data %>%
+  summarise(
+    Mean = mean(casualties, na.rm = TRUE),
+    Median = median(casualties, na.rm = TRUE),
+    `Standard Deviation` = sd(casualties, na.rm = TRUE)
+  )
+
+# Display the summary statistics as a table
+summary_stats %>%
+  kable(
+    format = "latex", 
+    booktabs = TRUE, 
+  ) %>%
+  kable_styling(
+    latex_options = c("striped"), 
+    full_width = FALSE
+  )
+
+```
+
+## Predicted Casualties by State {#sec-result-predicted}
+
+Using a Random Forest model, predictions for total casualties in each state for the year 2025 were generated. The predicted casualties were visualized geographically using a choropleth map in @fig-predicted_shooting_visualization. States such as California and Texas are predicted to experience the highest casualties, reflecting historical trends. 
+```{r}
+#| echo: false
+#| eval: true
 #| label: fig-predicted_shooting_visualization
-#| tbl-cap: "Predicted 2025 US School Shootings Numbers"
+#| fig-cap: "Predicted 2025 US School Shootings Numbers"
 #| warning: false
 
 #### Step 1: Load the Data and Model ####
@@ -349,41 +388,51 @@ ggplot(map_data, aes(long, lat, group = group, fill = predicted_casualties)) +
 
 ```
 
+The predicted casualties for each state are summarized in @tbl-predicted_shooting_table. The table provides a clear and concise overview, sorted in descending order of predicted casualties to emphasize the most affected states.
 
 ```{r}
 #| echo: false
-#| eval: false
-#| label: tbl-modelresults
-#| tbl-cap: "Explanatory models of flight time based on wing width and wing length"
+#| eval: true
+#| label: tbl-predicted_shooting_table
+#| tbl-cap: "Predicted School Shooting Casualties by State for 2025"
 #| warning: false
 
-modelsummary::modelsummary(
-  list(
-    "First model" = first_model
-  ),
-  statistic = "mad",
-  fmt = 2
-)
+# Prepare the predictions table without the year column
+prediction_table <- prediction_data %>%
+  select(-year) %>%  # Remove the 'year' column
+  arrange(desc(predicted_casualties)) %>%
+  rename(State = state, "Predicted Casualties" = predicted_casualties)
+
+# Display the table using kable
+prediction_table %>%
+  kable(format = "latex", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped"))  # Removed "hold_position"
 ```
 
+# Discussion {#sec-discussion}
 
+## Actions to mitigate the impact of high-casualty incidents {#sec-discussion-first-point}
 
+The distribution of school shooting casualties reveals significant insights into the nature of these incidents. The mean number of casualties is higher than the median, indicating a positively skewed distribution. This suggests that while most school shooting incidents result in relatively few casualties, there are a small number of events that result in significantly higher numbers of casualties. These high-casualty incidents have a disproportionate impact and should be a focal point for policymakers. Understanding the causes and contexts of such incidents, such as the presence of high-density schools, specific socio-economic factors, or insufficient security measures, could help in designing targeted interventions. For instance, schools in high-risk areas could benefit from increased security personnel, improved mental health resources for students, and stricter firearm regulations. Government must prioritize strategies aimed at mitigating the impact of these high-casualty incidents to protect vulnerable populations.
 
-# Discussion
+## Targeted Interventions for High-Risk States {#sec-discussion-sec-point}
 
-## First discussion point {#sec-first-point}
+The state-level predictions of casualties, as visualized in the map and table, provide actionable insights for policymakers at both the state and federal levels. States such as Georgia, California, and Pennsylvania are projected to experience higher numbers of casualties in 2025. This highlights the need for state-specific policies and resource allocation. For example, states with higher predicted casualties could implement tailored programs such as increasing mental health support in schools, conducting safety drills, and investing in school infrastructure to enhance safety measures. Additionally, identifying regions with consistently higher casualties can help governments allocate resources more effectively and conduct targeted investigations to address root causes.
 
-If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
+## Policy Recommendations to Reduce Casualties {#sec-discussion-third-point}
 
-## Second discussion point
+The map and table of predicted casualties highlight opportunities for governments to take preventative action. One key recommendation is to introduce universal background checks and stricter gun control measures in states with high predicted casualties. Furthermore, funding programs that promote community engagement and early intervention in at-risk populations could help reduce the likelihood of school shootings. Schools can also be equipped with better surveillance technology and emergency response systems to minimize casualties during incidents. At a broader level, creating national frameworks for school safety policies can ensure consistency and accountability in protecting students and staff across all states.
 
-Please don't use these as sub-heading labels - change them to be what your point actually is.
+## Weaknesses and next steps {#sec-discussion-weaknessnext}
 
-## Third discussion point
+While the Random Forest model provided reasonable predictions, it exhibited some limitations. The negative percentage of variance explained during initial iterations indicated that the model struggled to generalize with the available predictors. Although this was addressed by refining the data and removing outliers, the inclusion of only year and state as predictors limits the model's explanatory power. Additionally, the dataset's small size and imbalance across states might have impacted the model's ability to identify robust patterns. 
 
-## Weaknesses and next steps
+The findings from this study underscore the importance of integrating predictive modeling with proactive policy-making. However, future work should focus on enhancing the dataset by incorporating additional predictors such as gun ownership rates, local crime statistics, and school-specific characteristics. 
 
-Weaknesses and next steps should also be included.
+Additionally, examining the effectiveness of existing policies in high-risk areas could provide valuable insights into which interventions are most impactful. 
+
+Finally, collaborative efforts between federal agencies, state governments, and local communities will be essential to addressing the systemic issues underlying school shootings and reducing the number of casualties in future incidents.
+
 
 \newpage
 
