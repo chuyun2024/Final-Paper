@@ -1,12 +1,12 @@
 ---
-title: "2025 US School Shooting Predictions and Solutions"
-subtitle: "Leveraging Forecasting to Shape Policy and Protect Communities"
+title: "Understanding the Risk of Casualties in US School Shootings"
+subtitle: "Leveraging Bayesian Analysis to Guide Safety and Prevention Strategies"
 author: 
   - Yun Chu
 thanks: "Code and data are available at: https://github.com/chuyun2024/School-Shooting-Analysis."
 date: today
 date-format: long
-abstract: "School shootings in the United States pose a critical challenge with far-reaching impacts. This paper employs a Random Forest regression model to predict state-level casualties for 2025 using historical data from 1999 to the present. The findings reveal a positively skewed distribution of casualties, with states like Georgia, California, and Pennsylvania projected to face the highest numbers. These insights highlight the need for targeted interventions, including enhanced school safety measures and stricter gun control policies. By providing actionable predictions, this study aims to inform policies that reduce school shooting casualties and protect vulnerable populations."
+abstract: "School shootings in the United States are a persistent and devastating issue. This paper utilizes a Bayesian Logistic Regression model to predict the probability of casualties in school shooting incidents, using historical data from 1999 onward. Key predictors, including shooting type and geographic latitude, are identified and analyzed. The results demonstrate that targeted and indiscriminate shootings significantly increase casualty risks, highlighting the need for targeted safety measures, such as enhanced threat assessment programs and stricter firearm regulations. This analysis provides a framework for implementing data-driven strategies to reduce casualties and improve school safety nationwide."
 format: pdf
 toc: true
 number-sections: true
@@ -27,16 +27,10 @@ library(modelsummary)
 library(here)
 library(kableExtra)
 library(arrow)
+library(patchwork)
+library(rstanarm)
 #### Read data ####
 data <- read_parquet("../data/02-analysis_data/analysis_data.parquet")
-data$ifcasualty <- ifelse(data$casualties> 0, 1, 0)
-# Create a new column with simplified categories
-data$shooting_category <- ifelse(
-  data$shooting_type %in% c("indiscriminate", "targeted"),  
-  "indiscriminate or targeted",                              
-  "other"
-)
-
 ```
 
 
@@ -60,7 +54,7 @@ The dataset has 416 entries, with each entry representing a unique school shooti
 
 As the federal government does not consistently track school shootings, this dataset from *The Washington Post* fills a critical gap. It was carefully assembled using information from diverse sources, including news articles, open-source databases, law enforcement reports, and direct inquiries to schools and police departments [@washingtonpost_school_shootings]. Although sources like FBI crime reports and local school incident logs were reviewed, they lack the detail and comprehensive coverage of this dataset. Its unparalleled breadth and depth make it the strongest foundation for predictive modeling and generating actionable insights.
 
-The statistical programming language R [@citeR] is used to download, clean, analyze and model the US School Shooting Data. The US School Shooting dataset is downloaded from The Washington Post [@washingtonpost_school_shootings_data] . The following libraries are utilized in this paper: `tidyverse` [@tidyverse2024], `dplyr` [@dplyr2024], `lubridate` [@lubridate2024], `readr` [@readr2024], `stringr` [@stringr2024], `arrow` [@arrow2024], `testthat` [@testthat2024], `modelsummary` [@modelsummary], `ggplot2` [@ggplot2], `maps` [@maps], `knitr` [@knitr], `here` [@here], `kableExtra` [@kableExtra], `rstanarm` [@rstanarm].
+The statistical programming language R [@citeR] is used to download, clean, analyze and model the US School Shooting Data. The US School Shooting dataset is downloaded from The Washington Post [@washingtonpost_school_shootings_data] . The following libraries are utilized in this paper: `tidyverse` [@tidyverse2024], `dplyr` [@dplyr2024], `lubridate` [@lubridate2024], `readr` [@readr2024], `stringr` [@stringr2024], `arrow` [@arrow2024], `testthat` [@testthat2024], `modelsummary` [@modelsummary], `ggplot2` [@ggplot2], `maps` [@maps], `knitr` [@knitr], `here` [@here], `kableExtra` [@kableExtra], `rstanarm` [@rstanarm], `arrow` [@R-arrow] and `patchwork` [@patchwork].
 
 ## Measurement {#sec-data-measurement}
 
@@ -99,7 +93,7 @@ kable(casualties_summary, caption = "Summary Statistics for Casualties") %>%
 
 ```{r}
 #| label: fig-casualty-by-shooting-type
-#| fig-cap: "Distribution of Casualty By Shooting Type"
+#| fig-cap: "Number of Casualties for Each Shooting Type in US School Shooting Incidents"
 #| echo: false
 #| eval: true
 #| 
@@ -118,7 +112,7 @@ ggplot(casualties_by_type, aes(x = reorder(shooting_type, total_casualties), y =
   geom_bar(stat = "identity", color = "white") +
   scale_fill_brewer(palette = "Set3") +
   labs(
-    title = "Number of Casualties by Shooting Type",
+    title = "Distribution of Casualty By Shooting Type",
     x = "Shooting Type",
     y = "Total Number of Casualties",
     fill = "Shooting Type"
@@ -144,12 +138,15 @@ The outcome variable for this analysis is causalities for each state in 2025. In
 ```{r}
 #| label: fig-casualtydist
 #| echo: false
-#| fig-cap: Distribution of Casualties
+#| fig-cap: "Distribution of Casualties in US School Shooting Incidents from 1999 to 2024"
 # Causaulity Distribution
 ggplot(data, aes(x = casualties)) +
-  geom_histogram(binwidth = 1, fill = "skyblue", color = "white") +
-  labs(x = "Number of Casualties", y = "Frequency") +
-  theme_minimal()
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "white") + 
+  labs(title = "Distribution of Casualties", x = "Number of Casualties", y = "Frequency") +
+  theme_minimal() +
+    theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14)
+    )
 
 ```
 
@@ -159,7 +156,7 @@ ggplot(data, aes(x = casualties)) +
 
 ```{r}
 #| label: fig-Shooting_Casaulties_by_State
-#| fig-cap: "US School Shooting Casaulties by State"
+#| fig-cap: "US School Shooting Casaulties by State from 1999 to 2024"
 #| echo: false
 
 state_counts <- data %>%
@@ -180,32 +177,40 @@ map_data <- us_map %>%
 # Replace missing values in total_casualties with 0 for states with no data
 map_data$total_casualties[is.na(map_data$total_casualties)] <- 0
 
-# Plot the map
+# Adjusted Plot
 ggplot(map_data, aes(long, lat, group = group, fill = total_casualties)) +
   geom_polygon(color = "white") +
   scale_fill_gradient(
-    low = "#E6F7FF",  # Light blue
-    high = "#0072B2",  # Dark blue
+    low = "#E6F7FF",
+    high = "#0072B2",
     name = "Total Casualties",
     breaks = c(0, 50, 100, 150, 200)  # Adjust breaks based on your data
   ) +
   labs(
-    title = "US School Shooting Casualties by State",
-    subtitle = "Number of casualties visualized geographically",
+    title = "US School Shooting Casualties Visualization",
     x = NULL,
     y = NULL
   ) +
   coord_fixed(1.3) +
   theme_minimal(base_size = 14) +
   theme(
-    plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 13, margin = ggplot2::margin(t = 10, b = 10)),
-    plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 10, margin = ggplot2::margin(t = 0, b = 20)),
-    legend.position = "right",  # Alternative: Use "bottom" for a horizontal legend
-    legend.key.height = unit(1, "cm"),  # Adjust legend size
-    axis.text = ggplot2::element_blank(),
-    axis.ticks = ggplot2::element_blank(),
-    panel.grid = ggplot2::element_blank(),
-    plot.margin = ggplot2::margin(t = 20, r = 20, b = 20, l = 20)  # Increase margins for PDF export
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14, margin = margin(t = 10, b = 10)),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, margin = margin(t = 0, b = 20)),
+    legend.position = "right",
+    legend.title = element_text(size = 10),  # Reduce the size of "Total Casualties"
+    legend.text = element_text(size = 8),   # Reduce size of legend values
+    legend.key.height = unit(0.5, "cm"),    # Reduce the height of the legend color bar
+    legend.key.width = unit(0.25, "cm"),    # Reduce the width of the legend color bar
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 10)  # Increase margins for spacing
+  ) +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 0.5,  # Adjust the width of the legend bar
+      barheight = 8    # Adjust the height of the legend bar
+    )
   )
 
 ```
@@ -222,32 +227,19 @@ Predictor variables in this analysis is Shooting Category and Latitude.
 
 ```{r}
 #| label: fig-shootingtypedist
-#| fig-cap: "Shooting Type Distribution" 
+#| fig-cap: "US School Shooting Type Distribution from 1999 to 2024" 
 #| echo: false
 #| eval: true
-
-# Load necessary libraries
-library(ggplot2)
-library(dplyr)
-library(ggrepel)
 
 # Simulated dataset (replace this with your actual data)
 # Assuming `data` has a column `shooting_type`
 shooting_data <- data %>% 
   count(shooting_type) %>% 
   mutate(
-    proportion = n / sum(n),  # Calculate proportions
-    label = paste0(shooting_type, " (", scales::percent(proportion, accuracy = 1), ")")  # Labels
+    proportion = n / sum(n)  # Calculate proportions
   )
 
-# Calculate label positions and angles
-shooting_data <- shooting_data %>%
-  mutate(
-    y_position = cumsum(proportion) - 0.5 * proportion,  # Calculate mid-point of each segment
-    angle = 90 - (360 * (cumsum(proportion) - proportion / 2))  # Adjust angles for better label alignment
-  )
-
-# Plot Pie Chart
+# Plot Pie Chart without Text
 ggplot(shooting_data, aes(x = "", y = proportion, fill = shooting_type)) +
   geom_bar(width = 1, stat = "identity", color = "white") +
   coord_polar(theta = "y") +
@@ -257,44 +249,29 @@ ggplot(shooting_data, aes(x = "", y = proportion, fill = shooting_type)) +
     title = "Distribution of Shooting Types",
     fill = "Shooting Type"
   ) +
-  geom_text(
-    aes(
-      label = ifelse(proportion > 0.05, paste0(shooting_type, " (", scales::percent(proportion, accuracy = 1), ")"), ""),
-      y = y_position,
-      angle = ifelse(proportion < 0.1, angle, 0)  # Add dynamic rotation for small segments
-    ),
-    size = 3,
-    hjust = ifelse(shooting_data$proportion < 0.1, 1, 0.5),  # Align labels for smaller slices
-    nudge_x = 0.4  # Nudge outward for better alignment
-  ) +
   theme(
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
     legend.title = element_text(size = 10),
     legend.position = "right"
   )
+
 ```
 
 @fig-latitudedist shows the distribution of latitude values of schools in school shooting events, ranging from approximately 20 to 50 degrees. Most events occur between 30 and 40 degrees, with a peak near 35 degrees. There are few occurrences at higher latitudes (above 45 degrees).
 
 ```{r}
 #| label: fig-latitudedist
-#| fig-cap: "Distribution of Latitude of Schools in School Shooting Events"
+#| fig-cap: "Distribution of Latitude of Schools in School Shooting Incidents in US from 1999 to 2024"
 #| echo: false
 #| eval: true
 #| warning: false
-
-# Load necessary libraries
-library(ggplot2)
-
-# Assuming `data` contains the `lat` column (latitude values)
-# Replace `data` with your actual dataset
 
 # Plot the distribution of latitude
 ggplot(data, aes(x = lat)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "white") +
   theme_minimal() +
   labs(
-    title = "Distribution of Latitude",
+    title = "Distribution of Latitude of Schools in Shooting Incidents",
     x = "Latitude",
     y = "Frequency"
   ) +
@@ -400,97 +377,105 @@ modelsummary(
 
 
 ## Intercept  
-The intercept estimate is **2.6798** (95% credible interval: **1.0774 to 4.3091**), representing the baseline log-odds of a casualty occurring when predictors are at their reference levels. This corresponds to a high baseline probability, with the credible interval excluding zero, indicating strong evidence for a nonzero probability of casualties under these conditions.
+The intercept estimate is 2.37 (95% credible interval: 0.824 to 4.02), representing the baseline log-odds of a casualty occurring when predictors are at their reference levels. This corresponds to a high baseline probability, with the credible interval excluding zero, indicating strong evidence for a nonzero probability of casualties under these conditions.
 
 ## Shooting Type  
-The coefficient for the "other" shooting category is **-0.6336** (95% credible interval: **-1.0735 to -0.1784**), suggesting a lower likelihood of casualties compared to the "indiscriminate" or "targeted" categories.
+The coefficient for the "other" shooting category is -0.63 (95% credible interval: -1.09 to -0.16), suggesting a lower likelihood of casualties compared to the "indiscriminate" or "targeted" categories.
 
 ## Latitude  
-The latitude coefficient is **-0.0443** (95% credible interval: **-0.0876 to -0.0021**), indicating a slight but significant decrease in the probability of casualties with increasing latitude. This suggests potential geographic trends influencing casualty outcomes, such as differences in population density, response capabilities, or regional policies. 
+The latitude coefficient is -0.04 (95% credible interval: -0.08 to 0.00), indicating a slight but significant decrease in the probability of casualties with increasing latitude. This suggests potential geographic trends influencing casualty outcomes, such as differences in population density, response capabilities, or regional policies. 
 
 
 ## Predicted Existence of Casualties by State {#sec-result-predicted}
 
-Using a Bayesian Logistic regression model, predictions for the existence of casualties in each state were generated. The predicted casualties were visualized geographically using a choropleth map in @fig-predicted_shooting_visualization. 
+Using a Bayesian Logistic regression model, predictions for the existence of casualties in each state were generated. The predicted casualties were visualized geographically using a choropleth map in @fig-predicted_shooting_visualization where the states in dark red are classified as casualty exists while the states in grey are classified as no casualty.
 
 ```{r}
 #| echo: false
 #| eval: true
 #| label: fig-predicted_shooting_visualization
-#| fig-cap: "Existence of Casualties in US School Shootings Prediction"
+#| fig-cap: "Prediction of the Existence of Casualty in US School Shootings Incidents Based on Bayesian Logistic Regression Model"
 #| warning: false
-#| width: 8
-#| height: 4
-# Load necessary libraries
-library(ggplot2)
-library(dplyr)
-library(maps)
-library(patchwork)
-library(rstanarm)
 
+# Load US map data
 us_states <- map_data("state")
 
-# Calculate state centroids (mean latitude and longitude for each state)
-state_centroids <- us_states %>%
-  group_by(region) %>%
-  summarise(long = mean(range(long)), lat = mean(range(lat)))
-
-# Fix Florida's centroid directly
-state_centroids <- state_centroids %>%
+# Prepare state-level data for predictions
+state_data <- us_states %>%
+  distinct(region) %>%  # Get unique state names
   mutate(
-    long = ifelse(region == "florida", -81.686783, long),
-    lat = ifelse(region == "florida", 27.766279, lat)
+    shooting_category = "indiscriminate or targeted" # Initial shooting category for predictions
   )
 
-# Continue with the rest of your code to predict and plot as before
-state_data <- state_centroids %>%
-  mutate(
-    shooting_category = "indiscriminate or targeted",
-    lat = lat,
-    long = long
+# Add latitude for each state by calculating the mean latitude of the state polygons
+state_data <- state_data %>%
+  left_join(
+    us_states %>%
+      group_by(region) %>%
+      summarise(lat = mean(lat)),  # Calculate mean latitude for each state
+    by = "region"
   )
 
-# Predict probabilities and classify shooting existence
+# Predict probabilities using the Bayesian model
 state_data$prob_targeted <- posterior_epred(bayes_model, newdata = state_data) %>% colMeans()
-state_data$shooting_category <- "other"
+state_data$shooting_category <- "other"  # Change category for next prediction
 state_data$prob_other <- posterior_epred(bayes_model, newdata = state_data) %>% colMeans()
-state_data$exist_targeted <- ifelse(state_data$prob_targeted > 0.70657, 1, 0)
-state_data$exist_other <- ifelse(state_data$prob_other > 0.70657, 1, 0)
+
+# Classify shooting existence based on thresholds
+state_data <- state_data %>%
+  mutate(
+    exist_targeted = ifelse(prob_targeted > 0.70657, 1, 0),
+    exist_other = ifelse(prob_other > 0.70657, 1, 0)
+  )
+
+# Join predictions with the US map data
+map_data <- us_states %>%
+  left_join(state_data, by = "region") %>%  # Merge predictions with state polygons
+  rename(lat = lat.x)  # Rename lat.x back to lat for compatibility with ggplot
 
 # Plot for "Targeted/Indiscriminate"
-p1 <- ggplot(us_states) +
-  geom_polygon(aes(x = long, y = lat, group = group), fill = "lightgray", color = "white") +
-  geom_point(data = state_data %>% filter(exist_targeted == 1), 
-             aes(x = long, y = lat), 
-             color = "darkred", size = 4, alpha = 0.8) +
+p1 <- ggplot(map_data) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = factor(exist_targeted)), color = "white") +
+  scale_fill_manual(values = c("0" = "lightgray", "1" = "darkred"), na.translate = FALSE) +
+  coord_fixed(1.3) +  # Fix aspect ratio
   theme_void() +
-  labs(title = "Shooting Type: Targeted/Indiscriminate", x = NULL, y = NULL) +
+  labs(
+    title = "Shooting Type: Targeted/Indiscriminate",
+    fill = NULL
+  ) +
   theme(
-    plot.title = element_text(size = 11, hjust = 0.5) # Shrink and center the title
+    plot.title = element_text(size = 9, hjust = 0.5),
+    plot.margin = margin(t = 5, r = 10, b = 5, l = 10)  # Add margins for spacing
   )
 
 # Plot for "Other"
-p2 <- ggplot(us_states) +
-  geom_polygon(aes(x = long, y = lat, group = group), fill = "lightgray", color = "white") +
-  geom_point(data = state_data %>% filter(exist_other == 1), 
-             aes(x = long, y = lat), 
-             color = "darkblue", size = 4, alpha = 0.8) +
+p2 <- ggplot(map_data) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = factor(exist_other)), color = "white") +
+  scale_fill_manual(values = c("0" = "lightgray", "1" = "darkblue"), na.translate = FALSE) +
+  coord_fixed(1.3) +  # Fix aspect ratio
   theme_void() +
-  labs(title = "Shooting Type: Other", x = NULL, y = NULL) +
+  labs(
+    title = "Shooting Type: Other",
+    fill = NULL
+  ) +
   theme(
-    plot.title = element_text(size = 11, hjust = 0.5) # Shrink and center the title
+    plot.title = element_text(size = 9, hjust = 0.5),
+    plot.margin = margin(t = 5, r = 10, b = 5, l = 10)  # Add margins for spacing
   )
 
-# Combine plots with patchwork
+# Combine the two plots using patchwork and add a title
 combined_plot <- p1 + p2 +
   plot_annotation(
+    title = "Predicted Existence of Casualties Visualization",
     theme = theme(
-      plot.title = element_text(hjust = 0.5, face = "bold", size = 14)
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+      plot.margin = margin(t = 5, r = 5, b = 5, l = 5)  # Reduce margins around the combined plot
     )
   )
 
-# Display the final plot
+# Display the combined plot
 print(combined_plot)
+
 ```
 
 # Discussion {#sec-discussion}
@@ -536,35 +521,35 @@ Addressing the complex issue of school shootings requires collaboration across d
 
 # Appendix {#sec-appendix}
 
-## **Analysis of The Washington Post's Data Collection Approach**
+## Analysis of The Washington Post's Data Collection Approach
 
 The Washington Post’s investigation into school shootings exemplifies a meticulous approach to data collection and analysis, aligning with best practices in data journalism and social science research.
 
-### **Data Collection and Triangulation**
+### Data Collection and Triangulation
 The Post utilized multiple data sources—including Nexis, news articles, open-source databases, law enforcement reports, and direct communications with schools and police departments—to compile a comprehensive list of school shootings. This method reflects the principle of data triangulation, which enhances the validity of findings by cross-verifying information from diverse sources [@denzin1978research]. Such triangulation is crucial in data journalism to ensure accuracy and comprehensiveness.
 
 
-### **Defining Inclusion and Exclusion Criteria**
+### Defining Inclusion and Exclusion Criteria
 By establishing clear criteria for what constitutes a school shooting—excluding incidents like after-hours events, accidental discharges without injury, and private suicides—the Post ensured a focused analysis. This practice aligns with the concept of construct validity, ensuring that the study accurately reflects the phenomenon under investigation [@cronbach1955construct].
 
 
-### **Sampling and Estimation Techniques**
+### Sampling and Estimation Techniques
 To estimate the number of children exposed to gunfire, the Post used enrollment figures from the U.S. Education Department and adjusted for average daily absenteeism. Specifically, they deducted 7% from enrollment totals to account for average absenteeism and reduced enrollment by 50% for shootings occurring just before or after school hours. This approach mirrors sampling techniques discussed in "Telling Stories with Data", which emphasizes the importance of identifying the target population, understanding the context-specific variables (such as absenteeism rates), and applying appropriate adjustments to ensure the representativeness and reliability of the results [@alexander2023telling]. For example, the text highlights the necessity of incorporating real-world constraints—such as data availability or measurement gaps—into the design of sampling frameworks to improve the accuracy of population estimates. 
 
 
-### **Reproducibility and Transparency**
+### Reproducibility and Transparency
 The Post's transparency in detailing their methodology allows for reproducibility and critical assessment, key components in data journalism. As highlighted in *Telling Stories with Data*, reproducible workflows involve sharing data, code, and analytical steps, enabling others to replicate and validate findings [@alexander2023telling].
 
 
-### **Addressing Potential Biases**
+### Addressing Potential Biases
 The Post acknowledged that their database might not include every qualifying incident due to the absence of a federal tracking system. This recognition of potential data availability bias is essential, as discussed in the literature on observational data, which emphasizes the importance of considering who is included in the dataset and who is systematically excluded [@kaplan2014bias].
 
 
-#### **Weaknesses**
+### Weaknesses
 Despite its strengths, The Washington Post’s methodology has notable limitations. Reliance on media reports and open-source databases may introduce reporting bias, potentially underrepresenting incidents in areas with limited media coverage [@kaplan2014bias]. The exclusion of certain incidents, such as private suicides, could understate the broader psychological impact of gun violence. Additionally, adjustments for absenteeism rates assume consistent patterns across all schools, which may overlook localized variations and specific community contexts [@alexander2023telling]. The use of proprietary tools like Nexis and reliance on non-public datasets also pose challenges for reproducibility, limiting the ability of others to independently verify findings. Finally, the absence of a centralized federal tracking system for school shootings creates a systemic data gap that even the Post’s robust methodology cannot fully address [@kaplan2014bias].
 
 
-### **Conclusion**
+### Conclusion
 The Washington Post's methodology in investigating school shootings demonstrates a rigorous application of data collection and analysis principles, aligning with best practices in data journalism and social science research. By employing data triangulation [@denzin1978research], defining clear inclusion criteria [@cronbach1955construct], adjusting for sampling considerations [@alexander2023telling], ensuring reproducibility [@alexander2023telling], and acknowledging potential biases [@kaplan2014bias], the Post provides a robust framework for understanding the impact of school shootings on children. Nonetheless, the identified weaknesses underscore the importance of continued refinement and broader systemic solutions for data collection.
 
 
