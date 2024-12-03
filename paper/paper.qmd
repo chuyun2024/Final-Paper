@@ -60,26 +60,11 @@ The dataset has 416 entries, with each entry representing a unique school shooti
 
 As the federal government does not consistently track school shootings, this dataset from *The Washington Post* fills a critical gap. It was carefully assembled using information from diverse sources, including news articles, open-source databases, law enforcement reports, and direct inquiries to schools and police departments [@washingtonpost_school_shootings]. Although sources like FBI crime reports and local school incident logs were reviewed, they lack the detail and comprehensive coverage of this dataset. Its unparalleled breadth and depth make it the strongest foundation for predictive modeling and generating actionable insights.
 
-The statistical programming language R [@citeR] is used to download, clean, analyze and model the US School Shooting Data. The US School Shooting dataset is downloaded from The Washington Post [@washingtonpost_school_shootings_data] . The following libraries are utilized in this paper:
-
-- tidyverse [@tidyverse2024]
-- dplyr [@dplyr2024]
-- lubridate [@lubridate2024]
-- readr [@readr2024]
-- stringr [@stringr2024]
-- arrow [@arrow2024]
-- testthat [@testthat2024]
-- modelsummary [@modelsummary]
-- ggplot2 [@ggplot2]
-- maps [@maps]
-- knitr [@knitr]
-- here [@here]
-- kableExtra [@kableExtra]
-- rstanarm [@rstanarm]
+The statistical programming language R [@citeR] is used to download, clean, analyze and model the US School Shooting Data. The US School Shooting dataset is downloaded from The Washington Post [@washingtonpost_school_shootings_data] . The following libraries are utilized in this paper: `tidyverse` [@tidyverse2024], `dplyr` [@dplyr2024], `lubridate` [@lubridate2024], `readr` [@readr2024], `stringr` [@stringr2024], `arrow` [@arrow2024], `testthat` [@testthat2024], `modelsummary` [@modelsummary], `ggplot2` [@ggplot2], `maps` [@maps], `knitr` [@knitr], `here` [@here], `kableExtra` [@kableExtra], `rstanarm` [@rstanarm].
 
 ## Measurement {#sec-data-measurement}
 
-The dataset, compiled by The Washington Post, translates real-world school shooting incidents into structured entries by aggregating information from news articles, open-source databases, law enforcement reports, and direct calls to schools. Only verified incidents, such as shootings during school hours or on school property, were included. Events like after-hours shootings, private suicides, or accidental discharges without other injuries were excluded [@washingtonpost_school_shootings].
+The Washington Post spent a year determining how many children have been affected by school shootings, beyond just those killed or injured. The dataset, compiled by The Washington Post, translates real-world school shooting incidents into structured entries by aggregating information from news articles, open-source databases, law enforcement reports, and direct calls to schools. Only verified incidents, such as shootings during school hours or on school property, were included. Events like after-hours shootings, private suicides, or accidental discharges without other injuries were excluded [@washingtonpost_school_shootings].
 
 ## Summary Statistics & Relationship Between Variables {#sec-data-sumsta}
 
@@ -551,8 +536,37 @@ Addressing the complex issue of school shootings requires collaboration across d
 
 # Appendix {#sec-appendix}
 
+## **Analysis of The Washington Post's Data Collection Approach**
 
-## Additional data details
+The Washington Post’s investigation into school shootings exemplifies a meticulous approach to data collection and analysis, aligning with best practices in data journalism and social science research.
+
+### **Data Collection and Triangulation**
+The Post utilized multiple data sources—including Nexis, news articles, open-source databases, law enforcement reports, and direct communications with schools and police departments—to compile a comprehensive list of school shootings. This method reflects the principle of data triangulation, which enhances the validity of findings by cross-verifying information from diverse sources [@denzin1978research]. Such triangulation is crucial in data journalism to ensure accuracy and comprehensiveness.
+
+
+### **Defining Inclusion and Exclusion Criteria**
+By establishing clear criteria for what constitutes a school shooting—excluding incidents like after-hours events, accidental discharges without injury, and private suicides—the Post ensured a focused analysis. This practice aligns with the concept of construct validity, ensuring that the study accurately reflects the phenomenon under investigation [@cronbach1955construct].
+
+
+### **Sampling and Estimation Techniques**
+To estimate the number of children exposed to gunfire, the Post used enrollment figures from the U.S. Education Department and adjusted for average daily absenteeism. Specifically, they deducted 7% from enrollment totals to account for average absenteeism and reduced enrollment by 50% for shootings occurring just before or after school hours. This approach mirrors sampling techniques discussed in "Telling Stories with Data", which emphasizes the importance of identifying the target population, understanding the context-specific variables (such as absenteeism rates), and applying appropriate adjustments to ensure the representativeness and reliability of the results [@alexander2023telling]. For example, the text highlights the necessity of incorporating real-world constraints—such as data availability or measurement gaps—into the design of sampling frameworks to improve the accuracy of population estimates. 
+
+
+### **Reproducibility and Transparency**
+The Post's transparency in detailing their methodology allows for reproducibility and critical assessment, key components in data journalism. As highlighted in *Telling Stories with Data*, reproducible workflows involve sharing data, code, and analytical steps, enabling others to replicate and validate findings [@alexander2023telling].
+
+
+### **Addressing Potential Biases**
+The Post acknowledged that their database might not include every qualifying incident due to the absence of a federal tracking system. This recognition of potential data availability bias is essential, as discussed in the literature on observational data, which emphasizes the importance of considering who is included in the dataset and who is systematically excluded [@kaplan2014bias].
+
+
+#### **Weaknesses**
+Despite its strengths, The Washington Post’s methodology has notable limitations. Reliance on media reports and open-source databases may introduce reporting bias, potentially underrepresenting incidents in areas with limited media coverage [@kaplan2014bias]. The exclusion of certain incidents, such as private suicides, could understate the broader psychological impact of gun violence. Additionally, adjustments for absenteeism rates assume consistent patterns across all schools, which may overlook localized variations and specific community contexts [@alexander2023telling]. The use of proprietary tools like Nexis and reliance on non-public datasets also pose challenges for reproducibility, limiting the ability of others to independently verify findings. Finally, the absence of a centralized federal tracking system for school shootings creates a systemic data gap that even the Post’s robust methodology cannot fully address [@kaplan2014bias].
+
+
+### **Conclusion**
+The Washington Post's methodology in investigating school shootings demonstrates a rigorous application of data collection and analysis principles, aligning with best practices in data journalism and social science research. By employing data triangulation [@denzin1978research], defining clear inclusion criteria [@cronbach1955construct], adjusting for sampling considerations [@alexander2023telling], ensuring reproducibility [@alexander2023telling], and acknowledging potential biases [@kaplan2014bias], the Post provides a robust framework for understanding the impact of school shootings on children. Nonetheless, the identified weaknesses underscore the importance of continued refinement and broader systemic solutions for data collection.
+
 
 ## Model details {#sec-model-details}
 
