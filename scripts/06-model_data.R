@@ -1,7 +1,7 @@
 #### Preamble ####
-# Purpose: Models... [...UPDATE THIS...]
+# Purpose: Models the relationship between the existence of casualty and shooting type and longtitude
 # Author: Yun Chu
-# Date: 25 November 2024
+# Date: 30 November 2024
 # Contact: yun.chu@mail.utoronto.ca
 # License: CC BY-NC-SA 4.0
 # Pre-requisites: 03-clean_data.R has been run
@@ -11,112 +11,101 @@
 #### Workspace setup ####
 library(tidyverse)
 library(dplyr)
-library(randomForest)
-
-#### Read data ####
-data <- read_csv("data/02-analysis_data/analysis_data.csv")
-
+library(rstanarm)
+library(pROC)
+library(arrow)
+library(bayesplot)
 ### Model data ####
 
-# Add year column and aggregate data by state and year
-data <- data %>%
-  group_by(state, year) %>%
-  summarise(
-    killed = sum(killed, na.rm = TRUE),
-    injured = sum(injured, na.rm = TRUE),
-    casualties = sum(casualties, na.rm = TRUE)
-  ) %>%
-  ungroup()
+data <- read_parquet("data/02-analysis_data/analysis_data.parquet")
 
-# Prepare data for modeling
-train_data <- data %>% filter(year <= 2024)
+# Step 1: Create a binary response variable
+data$ifcasualty <- ifelse(data$casualties> 0, 1, 0)
 
-# Convert state to a factor (categorical variable)
-train_data <- train_data %>%
-  mutate(state = as.factor(state))
+# Create a new column with simplified categories
+data$shooting_category <- ifelse(
+  data$shooting_type %in% c("indiscriminate", "targeted"),  
+  "indiscriminate or targeted",                              
+  "other"
+)
 
-# Define features and target variable
-X <- train_data %>% select(year, state)
-y <- train_data$casualties
+data <- na.omit(data[, c("ifcasualty", "shooting_category", "long", "lat")])
 
-#### Cross-Validation for Residual Calculation ####
+#posterior <- as.matrix(bayes_model)
+#hist(posterior[, "shooting_categoryother"], main = "Posterior Distribution")
 
-# Define cross-validation folds
-library(caret)
-set.seed(42)
-folds <- createFolds(y, k = 5, list = TRUE)
+# Fit Bayesian logistic regression
+bayes_model <- stan_glm(ifcasualty ~ shooting_category + lat,
+                        family = binomial(link = "logit"),
+                        data = data,
+                        prior = normal(0, 2.5),  # Weakly informative prior
+                        prior_intercept = normal(0, 5),
+                        chains = 4, iter = 2000)
 
-# Calculate residuals for each fold
-residuals_all <- numeric()
-for (fold in folds) {
-  train_idx <- setdiff(seq_len(nrow(train_data)), fold)
-  test_idx <- fold
-  
-  X_train_cv <- X[train_idx, ]
-  y_train_cv <- y[train_idx]
-  X_test_cv <- X[test_idx, ]
-  y_test_cv <- y[test_idx]
-  
-  # Train Random Forest on CV fold
-  rf_model_cv <- randomForest(X_train_cv, y_train_cv, ntree = 300)
-  
-  # Predict and calculate residuals
-  y_pred_cv <- predict(rf_model_cv, newdata = X_test_cv)
-  residuals_cv <- y_test_cv - y_pred_cv
-  residuals_all[test_idx] <- residuals_cv
-}
+# Summary of the model
+summary(bayes_model)
 
-# Add residuals to the training data
-train_data$residuals <- residuals_all
+# Extract posterior probabilities
+predicted_probs <- posterior_epred(bayes_model)
+data$predicted_prob_bayes <- colMeans(predicted_probs)
 
-#### Identify and Remove Outliers ####
-# Set a threshold for residuals (e.g., absolute residual > 10)
-outlier_threshold <- 10
-clean_data <- train_data %>% filter(abs(residuals) <= outlier_threshold)
+# Generate the ROC object
+roc_obj <- roc(data$ifcasualty, data$predicted_prob_bayes)
 
-# save clean data after removing outlier
-write_csv(clean_data, "data/02-analysis_data/no_outlier_data.csv")
 
-# Verify cleaned data
-cat("Number of rows before cleaning:", nrow(train_data), "\n")
-cat("Number of rows after cleaning:", nrow(clean_data), "\n")
+# Calculate the optimal threshold using Youden's Index
+optimal_coords <- coords(roc_obj, "best", ret = c("threshold", "specificity", "sensitivity"))
 
-#### Retrain the Model on Cleaned Data ####
-X_clean <- clean_data %>% select(year, state)
-y_clean <- clean_data$casualties
 
-# Train-test split
-set.seed(42)
-train_indices <- sample(nrow(clean_data), 0.8 * nrow(clean_data))
-X_train_clean <- X_clean[train_indices, ]
-y_train_clean <- y_clean[train_indices]
-X_test_clean <- X_clean[-train_indices, ]
-y_test_clean <- y_clean[-train_indices]
+# Extract the optimal threshold value from coords()
+optimal_threshold <- as.numeric(optimal_coords["threshold"])
 
-# Train Random Forest model
-rf_model_clean <- randomForest(X_train_clean, y_train_clean, ntree = 300)
+# Display the optimal threshold
+cat("Optimal Threshold:", optimal_threshold, "\n")
 
-# Evaluate the model on the cleaned test set
-y_pred_clean <- predict(rf_model_clean, newdata = X_test_clean)
-mae_clean <- mean(abs(y_test_clean - y_pred_clean))
-rmse_clean <- sqrt(mean((y_test_clean - y_pred_clean)^2))
+# Classify using the optimal threshold
+data$predicted_class_bayes <- ifelse(data$predicted_prob_bayes > optimal_threshold, 1, 0)
 
-# Print evaluation metrics for cleaned data
-cat("Model Evaluation after Cleaning:\n")
-cat("Mean Absolute Error (MAE):", mae_clean, "\n")
-cat("Root Mean Squared Error (RMSE):", rmse_clean, "\n")
+# Confusion matrix
+conf_matrix_bayes <- table(Predicted = data$predicted_class_bayes, Actual = data$ifcasualty)
+print(conf_matrix_bayes)
 
-# Model with outlier removed Residual Plot
-hist(y_test_clean - y_pred_clean, breaks = 30, main = "Residuals After Cleaning", xlab = "Residuals")
+# Accuracy
+accuracy_bayes <- sum(diag(conf_matrix_bayes)) / sum(conf_matrix_bayes)
+cat("Updated Accuracy with Optimal Threshold:", accuracy_bayes, "\n")
+
+
+
+
+
+# Generate posterior predictive samples
+posterior_predictive <- posterior_predict(bayes_model)
+
+# Check dimensions of the posterior predictions
+dim(posterior_predictive)  # Rows: posterior samples, Columns: observations
 
 
 #### Save model ####
 saveRDS(
-  rf_model_clean,
-  file = "models/rf_model.rds"
+  bayes_model,
+  file = "models/bayes_model.rds"
 )
 
 
+# Accuracy using the default 0.5 as threshold
+# Get mean predicted probabilities for each observation
+data$predicted_prob_bayes <- colMeans(posterior_epred(bayes_model))
+
+# Classify based on a threshold
+threshold <- 0.5  # or replace with your calculated optimal threshold
+data$predicted_class_bayes <- ifelse(data$predicted_prob_bayes > threshold, 1, 0)
 
 
+# Confusion matrix
+conf_matrix_bayes <- table(Predicted = data$predicted_class_bayes, Actual = data$ifcasualty)
+print(conf_matrix_bayes)
+
+# Accuracy
+accuracy_bayes <- sum(diag(conf_matrix_bayes)) / sum(conf_matrix_bayes)
+cat("Bayesian Logistic Regression Accuracy:", accuracy_bayes, "\n")
 

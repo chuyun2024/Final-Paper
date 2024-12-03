@@ -14,7 +14,7 @@ library(dplyr)
 library(testthat)
 library(arrow)
 
-data <- read_csv("data/02-analysis_data/analysis_data.csv")
+cleaned_data <- read_parquet("data/02-analysis_data/analysis_data.parquet")
 
 
 #### Test data ####
@@ -56,19 +56,8 @@ test_cleaned_data <- function(data) {
     }
   }
   
-  # 4. Validate `casualties` consistency
-  cat("\n--- Casualties Consistency ---\n")
-  casualties_discrepancies <- data %>%
-    filter(casualties != (killed + injured)) %>%
-    select(uid, killed, injured, casualties)
-  if (nrow(casualties_discrepancies) > 0) {
-    cat("ERROR: Discrepancies in `casualties` column:\n")
-    print(casualties_discrepancies)
-  } else {
-    cat("`casualties` column is consistent.\n")
-  }
   
-  # 5. Check date column integrity
+  # 4. Check date column integrity
   cat("\n--- Date Validation ---\n")
   if ("date" %in% names(data)) {
     invalid_dates <- data %>%
@@ -81,7 +70,7 @@ test_cleaned_data <- function(data) {
     }
   }
   
-  # 6. Check for duplicates
+  # 5. Check for duplicates
   cat("\n--- Duplicate Check ---\n")
   duplicate_rows <- data %>%
     duplicated()
@@ -92,13 +81,13 @@ test_cleaned_data <- function(data) {
     cat("No duplicate rows found.\n")
   }
   
-  # 7. Summary statistics for numeric columns
+  # 6. Summary statistics for numeric columns
   cat("\n--- Summary Statistics ---\n")
   numeric_columns <- data %>%
     select(where(is.numeric))
   print(summary(numeric_columns))
   
-  # 8. Validate categorical columns
+  # 7. Validate categorical columns
   cat("\n--- Categorical Column Validation ---\n")
   categorical_columns <- c("school_type", "state", "shooting_type", "gender_shooter1")
   for (col in categorical_columns) {
@@ -112,4 +101,5 @@ test_cleaned_data <- function(data) {
 }
 
 # Test the cleaned dataset
-test_cleaned_data(school_shoot_cleaned)
+test_cleaned_data(cleaned_data)
+

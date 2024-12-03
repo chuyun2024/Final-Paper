@@ -10,8 +10,10 @@
 
 #### Workspace setup ####
 library(tidyverse)
+library(arrow)
+
 #### Read data ####
-data <- read_csv("data/02-analysis_data/analysis_data.csv")
+data <- read_parquet("data/02-analysis_data/analysis_data.parquet")
 
 # Dimensions of the dataset
 dim(data)
@@ -50,7 +52,6 @@ ggplot(state_counts, aes(x = reorder(state, count), y = count)) +
   coord_flip() +
   labs(title = "Number of Incidents by State", x = "State", y = "Count") +
   theme_minimal()
-
 
 # Causaulity Distribution
 ggplot(data, aes(x = casualties)) +

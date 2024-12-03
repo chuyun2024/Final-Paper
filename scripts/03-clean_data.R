@@ -131,4 +131,3 @@ head(school_shoot_cleaned)
 
 #### Save data ####
 write_parquet(school_shoot_cleaned, "data/02-analysis_data/analysis_data.parquet")
-write_csv(school_shoot_cleaned, "data/02-analysis_data/analysis_data.csv")
