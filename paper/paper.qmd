@@ -36,15 +36,15 @@ data <- read_parquet("../data/02-analysis_data/analysis_data.parquet")
 
 # Introduction {#sec-intro}
 
-School shootings remain a grave concern in the United States, with devastating consequences for students, educators, and communities. Despite the growing public discourse and policy debates surrounding school safety, little progress has been made in effectively predicting and preventing these tragic incidents (Jonson, 2017; RAND Corporation, 2015). Understanding the patterns and predictors of school shootings is essential for designing evidence-based interventions to protect students and reduce casualties. This paper contributes to this critical issue by leveraging data-driven methodologies to analyze and predict the existence of school shooting casualties, with the aim of informing policy and prevention efforts.
+School shootings in the United States remain a deeply concerning issue, resulting in devastating consequences for students, educators, and communities. Despite significant public discourse and legislative efforts, effective strategies to predict and prevent such incidents remain underdeveloped [@rand2015school]. Understanding the factors contributing to school shooting casualties is critical for designing evidence-based policies that address the root causes of this violence.
 
-The estimand in this paper is to classify whether casualty exists in a school shooting incident in US. Using historical data from The Washington Post [@washingtonpost_school_shootings], which provides a comprehensive record of school shootings, a Bayesian Logistic Regression model was developed to predict the existence of casualty based on shooting type and latitude of the school. The analysis includes summary statistics, spatial visualizations, and predictive modeling, providing actionable insights for policymakers. This study fills a critical gap in understanding the probability of school shooting casualties and offers data-driven recommendations for targeted interventions.
+The estimand in this paper is the casualty in a school shooting incident in US. Using data from The Washington Post [@washingtonpost_school_shootings], this paper seeks to address this gap by employing a Bayesian Logistic Regression model to analyze the probability of casualties in school shooting incidents. Using historical data from 1999 onward, the analysis focuses on key predictors, such as shooting type and geographic latitude, to uncover patterns influencing casualty risks. Unlike previous research, this study emphasizes predictive modeling to offer actionable recommendations for policy and intervention strategies.
 
-A key finding of this study is the uneven distribution of casualties across states, with some states, such as Georgia, California, and Pennsylvania, predicted to experience significantly higher casualties in 2025. This highlights the importance of state-specific policies and resource allocation. The analysis also reveals that the distribution of casualties is positively skewed, with most incidents involving relatively few casualties, but a small number of high-casualty events disproportionately contributing to the overall impact. This information underscore the need for targeted strategies to mitigate the effects of high-casualty incidents.
+The findings indicate that targeted and indiscriminate shootings notably raise the probability of casualties, while geographic latitude offers further understanding of regional patterns. This analysis underscores the importance of tailored interventions, including proactive threat assessment programs and stricter firearm regulations, to mitigate the risks associated with high-casualty incidents.
 
-The importance of this study lies in its ability to provide a data-driven foundation for policy and prevention efforts. By identifying high-risk states and understanding the characteristics of high-casualty incidents, this paper aims to guide policymakers in allocating resources effectively and designing interventions that address the underlying factors contributing to school shootings. 
+This study is significant because it provides policymakers with a data-driven framework to allocate resources effectively and prioritize safety measures in high-risk areas. By utilizing data analysis to help with policy implementation, the research aims to contribute to the reduction of school shooting casualties and foster safer educational environments.
 
-The structure of this paper is as follows: @sec-data discusses the data, including its sources, measurements, and key variables; @sec-model outlines the model used for prediction, including its justification, model validation is included in @sec-appendix; @sec-result presents the results, including summary statistics and spatial visualizations; and @sec-discussion concludes with a discussion of the findings, limitations, and recommendations for future research and policy.
+The structure of this paper is as follows: @sec-data discusses the data, including its sources, measurements, and key variables; @sec-model outlines the model used for prediction, including its justification and limitaion, model validation is included in @sec-appendix; @sec-result presents the results, including summary statistics and spatial visualizations; and @sec-discussion concludes with a discussion of the findings, limitations, and recommendations for future research and policy.
 
 # Data {#sec-data}
 
@@ -52,9 +52,9 @@ The structure of this paper is as follows: @sec-data discusses the data, includi
 
 The dataset has 416 entries, with each entry representing a unique school shooting incident. Incidents occurring during after-hours events, accidental gun discharges that only injured the individual handling the firearm, and private suicides that did not endanger other children were excluded from consideration. Additionally, shootings at colleges and universities, which involve young adults rather than children, were not included in the analysis [@washingtonpost_school_shootings]. These entries cover 50 variables that provide information about the schools and its students, locations, date and time of shooting, shooters details, number of killed and injured, and the relationship of the shooter to school, the weapon type and source.
 
-As the federal government does not consistently track school shootings, this dataset from *The Washington Post* fills a critical gap. It was carefully assembled using information from diverse sources, including news articles, open-source databases, law enforcement reports, and direct inquiries to schools and police departments [@washingtonpost_school_shootings]. Although sources like FBI crime reports and local school incident logs were reviewed, they lack the detail and comprehensive coverage of this dataset. Its unparalleled breadth and depth make it the strongest foundation for predictive modeling and generating actionable insights.
+Since the federal government does not consistently track school shootings, this dataset from The Washington Post provides detailed information on these incidents.. Although sources like FBI crime reports and local school incident logs were reviewed, they lack the detail and comprehensive coverage of this dataset. Its unparalleled breadth and depth make it the strongest foundation for predictive modeling and generating actionable insights.
 
-The statistical programming language R [@citeR] is used to download, clean, analyze and model the US School Shooting Data. The US School Shooting dataset is downloaded from The Washington Post [@washingtonpost_school_shootings_data] . The following libraries are utilized in this paper: `tidyverse` [@tidyverse2024], `dplyr` [@dplyr2024], `lubridate` [@lubridate2024], `readr` [@readr2024], `stringr` [@stringr2024], `arrow` [@arrow2024], `testthat` [@testthat2024], `modelsummary` [@modelsummary], `ggplot2` [@ggplot2], `maps` [@maps], `knitr` [@knitr], `here` [@here], `kableExtra` [@kableExtra], `rstanarm` [@rstanarm], `arrow` [@R-arrow] and `patchwork` [@patchwork].
+The statistical programming language `R` [@citeR] is used to download, clean, analyze and model the US School Shooting Data. The US School Shooting dataset is downloaded from The Washington Post [@washingtonpost_school_shootings_data]. The following libraries in R are utilized in this paper: `tidyverse` [@tidyverse2024], `dplyr` [@dplyr2024], `lubridate` [@lubridate2024], `readr` [@readr2024], `stringr` [@stringr2024], `arrow` [@arrow2024], `testthat` [@testthat2024], `modelsummary` [@modelsummary], `ggplot2` [@ggplot2], `maps` [@maps], `knitr` [@knitr], `here` [@here], `kableExtra` [@kableExtra], `rstanarm` [@rstanarm], `arrow` [@R-arrow] and `patchwork` [@patchwork].
 
 ## Measurement {#sec-data-measurement}
 
@@ -89,7 +89,7 @@ kable(casualties_summary, caption = "Summary Statistics for Casualties") %>%
     position = "center"
   )
 ```
-@fig-casualty-by-shooting-type illustrates the distribution of casualties across different shooting types. The "Targeted" and "Indiscriminate" categories exhibit significantly higher casualty counts compared to other types. As a result, these two types are combined into one class, while the remaining types form a separate class.
+@fig-casualty-by-shooting-type illustrates the distribution of casualties across different shooting types. "Targeted" and "Indiscriminate" categories exhibit significantly higher casualty counts compared to other types. As a result, these two types are combined into one class, while the remaining types form a separate class.
 
 ```{r}
 #| label: fig-casualty-by-shooting-type
@@ -131,9 +131,9 @@ ggplot(casualties_by_type, aes(x = reorder(shooting_type, total_casualties), y =
 
 ## Outcome variables {#sec-data-outvariable}
 
-The outcome variable for this analysis is causalities for each state in 2025. In the model, we classify the existence of casualties.
+The outcome variable for this analysis is causalities for a School Shooting Event. In the model, we classify the existence of casualties.
 
-@fig-casualtydist illustrates the distribution of casualties. The data is positively skewed, with the majority of cases involving fewer than 7 casualties, though there are a few school shooting incidents with exceptionally high casualty counts.
+@fig-casualtydist illustrates the distribution of casualties, highlighting a positively skewed pattern. The majority of incidents involve fewer than seven casualties, though a few school shootings account for exceptionally high casualty numbers.
 
 ```{r}
 #| label: fig-casualtydist
@@ -152,7 +152,7 @@ ggplot(data, aes(x = casualties)) +
 
 
 
-@fig-Shooting_Casaulties_by_State visualizes the number of school shooting incidents in US by state for all data since 1999. California, Texas, Florida and North Carolina all have more than 20 school shooting incidents in the past 25 years while other states has less than 20 school shootings.
+@fig-Shooting_Casaulties_by_State visualizes the number of school shooting incidents in US by state for all data since 1999. California, Texas, Florida and North Carolina all have more than twenty school shooting incidents in the past twenty-five years while other states have less than twenty school shootings.
 
 ```{r}
 #| label: fig-Shooting_Casaulties_by_State
@@ -231,15 +231,21 @@ Predictor variables in this analysis is Shooting Category and Latitude.
 #| echo: false
 #| eval: true
 
-# Simulated dataset (replace this with your actual data)
-# Assuming `data` has a column `shooting_type`
 shooting_data <- data %>% 
   count(shooting_type) %>% 
   mutate(
-    proportion = n / sum(n)  # Calculate proportions
+    proportion = n / sum(n),  # Calculate proportions
+    percentage = paste0(round(proportion * 100, 1), "%")  # Format as percentages
+  ) %>% 
+  arrange(desc(n))  # Arrange by frequency
+
+# Add a column to label only the top 4 categories
+shooting_data <- shooting_data %>%
+  mutate(
+    label = if_else(row_number() <= 4, percentage, "")  # Only top 4 get labels
   )
 
-# Plot Pie Chart without Text
+# Plot Pie Chart with Percentages for Top 4
 ggplot(shooting_data, aes(x = "", y = proportion, fill = shooting_type)) +
   geom_bar(width = 1, stat = "identity", color = "white") +
   coord_polar(theta = "y") +
@@ -249,6 +255,12 @@ ggplot(shooting_data, aes(x = "", y = proportion, fill = shooting_type)) +
     title = "Distribution of Shooting Types",
     fill = "Shooting Type"
   ) +
+  geom_text(
+    aes(label = label), 
+    position = position_stack(vjust = 0.5), 
+    size = 4, 
+    color = "black"
+  ) +
   theme(
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
     legend.title = element_text(size = 10),
@@ -257,7 +269,7 @@ ggplot(shooting_data, aes(x = "", y = proportion, fill = shooting_type)) +
 
 ```
 
-@fig-latitudedist shows the distribution of latitude values of schools in school shooting events, ranging from approximately 20 to 50 degrees. Most events occur between 30 and 40 degrees, with a peak near 35 degrees. There are few occurrences at higher latitudes (above 45 degrees).
+@fig-latitudedist shows the distribution of latitude values of schools in school shooting events, ranging from approximately twenty to fifty degrees. Most events occur between thirty and forty degrees, with a peak near thirty-five degrees. There are few occurrences at higher latitudes (above forty-five degrees).
 
 ```{r}
 #| label: fig-latitudedist
@@ -318,13 +330,13 @@ The priors for the Bayesian logistic regression model are specified as follows:
 
 These priors were chosen to represent plausible parameter values while maintaining model stability.
 
-The Bayesian logistic regression model is implemented in **R** using the `rstanarm` package. The final model is saved as an RDS file for reproducibility and further analysis.
+The Bayesian logistic regression model is implemented in `R` using the `rstanarm` package. The final model is saved as an RDS file for reproducibility and further analysis.
 
 ### Model Justification {#sec-model-justification}
 
 The Bayesian logistic regression model is well-suited for this problem as it is specifically designed to predict binary outcomes, such as whether casualties occur, without requiring transformation of skewed response variables. Additionally, the Bayesian framework provides probabilistic predictions, allows for the incorporation of prior knowledge, and offers a robust quantification of uncertainty in parameter estimates.
 
-The shooting types "Targeted" and "Indiscriminate" were combined into a binary variable alongside other shooting types, as exploratory data analysis in @fig-casualty-by-shooting-type revealed that these two categories are strongly associated with a higher number of casualties.
+The shooting types "targeted" and "indiscriminate" were combined into a binary variable alongside other shooting types, as exploratory data analysis in @fig-casualty-by-shooting-type illustrated that these two categories are strongly associated with a higher number of casualties.
 
 Latitude is included as a predictor to account for geographic variability that might affect casualty likelihood. Longitude was evaluated during model selection but excluded due to its lack of statistical significance.
 
@@ -352,6 +364,8 @@ The Bayesian logistic regression model was chosen for its ability to provide int
 
 # Results {#sec-result}
 
+## Overview
+
 The model results are summarized in @tbl-modelresults.
 
 ```{r}
@@ -377,7 +391,7 @@ modelsummary(
 
 
 ## Intercept  
-The intercept estimate is 2.37 (95% credible interval: 0.824 to 4.02), representing the baseline log-odds of a casualty occurring when predictors are at their reference levels. This corresponds to a high baseline probability, with the credible interval excluding zero, indicating strong evidence for a nonzero probability of casualties under these conditions.
+The intercept estimate is 2.37 (95% credible interval: 0.82 to 4.02), representing the baseline log-odds of a casualty occurring when predictors are at their reference levels. This corresponds to a high baseline probability, with the credible interval excluding zero, indicating strong evidence for a nonzero probability of casualties under these conditions.
 
 ## Shooting Type  
 The coefficient for the "other" shooting category is -0.63 (95% credible interval: -1.09 to -0.16), suggesting a lower likelihood of casualties compared to the "indiscriminate" or "targeted" categories.
@@ -424,8 +438,8 @@ state_data$prob_other <- posterior_epred(bayes_model, newdata = state_data) %>% 
 # Classify shooting existence based on thresholds
 state_data <- state_data %>%
   mutate(
-    exist_targeted = ifelse(prob_targeted > 0.70657, 1, 0),
-    exist_other = ifelse(prob_other > 0.70657, 1, 0)
+    exist_targeted = ifelse(prob_targeted > 0.65, 1, 0),
+    exist_other = ifelse(prob_other > 0.65, 1, 0)
   )
 
 # Join predictions with the US map data
@@ -480,16 +494,15 @@ print(combined_plot)
 
 # Discussion {#sec-discussion}
 
-## Contributions of This Study  
-This paper utilizes a Bayesian Logistic Regression model to predict the likelihood of casualties in school shootings, focusing on the impact of shooting type and geographic latitude. The findings demonstrate that "Targeted" and "Indiscriminate" shootings significantly increase casualty probabilities, necessitating their classification into a unified predictive category. This categorization improves the model's predictive accuracy and highlights the distinct risk these shooting types pose. Furthermore, the model generates spatial predictions at the state level, identifying regions with elevated casualty risks. These predictions provide policymakers with concrete data to prioritize interventions and allocate resources effectively, especially in high-risk areas.
+This paper utilizes a Bayesian Logistic Regression model to predict the likelihood of casualties in school shootings, focusing on the impact of shooting type and geographic latitude. The findings demonstrate that "targeted" and "indiscriminate" shootings significantly increase casualty probabilities, necessitating their classification into a unified predictive category. This categorization improves the model's predictive accuracy and highlights the distinct risk these shooting types pose. Furthermore, the model generates spatial predictions at the state level, identifying regions with elevated casualty risks. These predictions provide policymakers with concrete data to prioritize interventions and allocate resources effectively, especially in high-risk areas.
 
 ## Policy Implications  
 
 ### Geographic Targeting of Resources  
-The geographic analysis in this study reveals significant disparities in casualty risks, with southern states showing higher probabilities of school shootings resulting in casualties. This finding emphasizes the need for tailored interventions in these regions. For example, policymakers can allocate funding to implement enhanced physical security measures in schools, such as metal detectors, reinforced entry points, and surveillance systems. Additionally, improving emergency response systems, including faster deployment of law enforcement and medical personnel, can mitigate the impact of shootings in high-risk areas. 
+The geographic analysis in this study shows significant disparities in casualty risks, with southern states showing higher probabilities of school shootings resulting in casualties. This finding emphasizes the need for tailored interventions in these regions. For example, policymakers can allocate funding to implement enhanced physical security measures in schools, such as metal detectors, reinforced entry points, and surveillance systems. Additionally, improving emergency response systems, including faster deployment of law enforcement and medical personnel, can mitigate the impact of shootings in high-risk areas. 
 
 ### Focus on High-Risk Shooting Types  
-The model's findings confirm that "Targeted" and "Indiscriminate" shootings are strongly associated with higher casualty rates. Policymakers can design prevention strategies specifically aimed at these shooting types. For "Targeted" shootings, schools can adopt proactive threat assessment programs to identify and provide support to at-risk individuals. For "Indiscriminate" shootings, community-level initiatives addressing factors such as mental health, social isolation, and access to firearms can reduce the likelihood of such incidents.
+The model's findings confirm that "targeted" and "indiscriminate" shootings are strongly associated with higher casualty rates. Policymakers can design prevention strategies specifically aimed at these shooting types. For "targeted" shootings, schools can adopt proactive threat assessment programs to identify and provide support to at-risk individuals. For "indiscriminate" shootings, community-level initiatives addressing factors such as mental health, social isolation, and access to firearms can reduce the likelihood of such incidents.
 
 ### Strengthening Gun Control Measures  
 Given the role of firearms in school shootings, this study highlights the importance of stricter gun control measures. Policies such as universal background checks, red flag laws, and safe firearm storage requirements can reduce unauthorized access to firearms and lower casualty risks. These measures can be particularly impactful in regions identified as having elevated risks, complementing other targeted interventions.
@@ -523,7 +536,7 @@ Addressing the complex issue of school shootings requires collaboration across d
 
 ## Analysis of The Washington Post's Data Collection Approach
 
-The Washington Post’s investigation into school shootings exemplifies a meticulous approach to data collection and analysis, aligning with best practices in data journalism and social science research.
+The Washington Post’s investigation into school shootings demonstrates a rigorous approach to data collection and analysis, adhering to established standards in data journalism and social science research.
 
 ### Data Collection and Triangulation
 The Post utilized multiple data sources—including Nexis, news articles, open-source databases, law enforcement reports, and direct communications with schools and police departments—to compile a comprehensive list of school shootings. This method reflects the principle of data triangulation, which enhances the validity of findings by cross-verifying information from diverse sources [@denzin1978research]. Such triangulation is crucial in data journalism to ensure accuracy and comprehensiveness.
@@ -604,7 +617,6 @@ plot(bayes_model, "rhat")
 ```
 
 \newpage
-
 
 # References
 
