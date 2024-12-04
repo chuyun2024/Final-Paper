@@ -547,7 +547,7 @@ To estimate the number of children exposed to gunfire, the Post used enrollment 
 
 
 ### Reproducibility and Transparency
-The Post's transparency in detailing their methodology allows for reproducibility and critical assessment, key components in data journalism. As highlighted in *Telling Stories with Data*, reproducible workflows involve sharing data, code, and analytical steps, enabling others to replicate and validate findings [@alexander2023telling].
+The Post's transparency in detailing their methodology allows for reproducibility and critical assessment, key components in data journalism. As highlighted in Telling Stories with Data, reproducible workflows involve sharing data, code, and analytical steps, enabling others to replicate and validate findings [@alexander2023telling].
 
 
 ### Addressing Potential Biases
