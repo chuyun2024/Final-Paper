@@ -128,7 +128,7 @@ ggplot(casualties_by_type, aes(x = reorder(shooting_type, total_casualties), y =
 
 
 
-## Outcome variables {#sec-data-outvariable}
+## Outcome Variables {#sec-data-outvariable}
 
 The outcome variable for this analysis is causalities for a School Shooting Event. In the model, we classify the existence of casualties.
 
@@ -213,7 +213,7 @@ ggplot(map_data, aes(long, lat, group = group, fill = total_casualties)) +
 
 ```
 
-## Predictor variables {#sec-predic-variable}
+## Predictor Variables {#sec-predic-variable}
 
 Predictor variables in this analysis is Shooting Category and Latitude. 
 
