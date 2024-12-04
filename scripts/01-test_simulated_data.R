@@ -10,8 +10,9 @@
 
 
 #### Workspace setup ####
+library(arrow)
 
-analysis_data <- read_csv("data/00-simulated_data/simulated_data.csv")
+analysis_data <- read_parquet("data/00-simulated_data/simulated_data.parquet")
 
 # Test if the data was successfully loaded
 if (exists("analysis_data")) {

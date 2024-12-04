@@ -1,5 +1,5 @@
 #### Preamble ####
-# Purpose: Models the relationship between the existence of casualty and shooting type and longtitude
+# Purpose: Models the relationship between the existence of casualty and shooting type and latitude
 # Author: Yun Chu
 # Date: 30 November 2024
 # Contact: yun.chu@mail.utoronto.ca

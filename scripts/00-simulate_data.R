@@ -11,6 +11,7 @@
 #### Workspace setup ####
 library(dplyr)
 library(lubridate)
+library(arrow)
 
 #### Simulate data ####
 # Set seed for reproducibility
@@ -119,4 +120,4 @@ head(simulated_data)
 
 
 #### Save data ####
-write_csv(simulated_data, "data/00-simulated_data/simulated_data.csv")
+write_parquet(simulated_data, "data/00-simulated_data/simulated_data.parquet")
