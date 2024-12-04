@@ -112,7 +112,6 @@ ggplot(casualties_by_type, aes(x = reorder(shooting_type, total_casualties), y =
   geom_bar(stat = "identity", color = "white") +
   scale_fill_brewer(palette = "Set3") +
   labs(
-    title = "Distribution of Casualty By Shooting Type",
     x = "Shooting Type",
     y = "Total Number of Casualties",
     fill = "Shooting Type"
@@ -142,7 +141,7 @@ The outcome variable for this analysis is causalities for a School Shooting Even
 # Causaulity Distribution
 ggplot(data, aes(x = casualties)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "white") + 
-  labs(title = "Distribution of Casualties", x = "Number of Casualties", y = "Frequency") +
+  labs(x = "Number of Casualties", y = "Frequency") +
   theme_minimal() +
     theme(
     plot.title = element_text(hjust = 0.5, face = "bold", size = 14)
@@ -187,7 +186,6 @@ ggplot(map_data, aes(long, lat, group = group, fill = total_casualties)) +
     breaks = c(0, 50, 100, 150, 200)  # Adjust breaks based on your data
   ) +
   labs(
-    title = "US School Shooting Casualties Visualization",
     x = NULL,
     y = NULL
   ) +
@@ -252,7 +250,6 @@ ggplot(shooting_data, aes(x = "", y = proportion, fill = shooting_type)) +
   theme_void() +
   scale_fill_brewer(palette = "Set3") +
   labs(
-    title = "Distribution of Shooting Types",
     fill = "Shooting Type"
   ) +
   geom_text(
@@ -283,7 +280,6 @@ ggplot(data, aes(x = lat)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "white") +
   theme_minimal() +
   labs(
-    title = "Distribution of Latitude of Schools in Shooting Incidents",
     x = "Latitude",
     y = "Frequency"
   ) +
