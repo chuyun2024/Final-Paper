@@ -593,9 +593,6 @@ posterior_vs_prior(bayes_model) +
 
 ## Diagnostics
 
-@fig-stanareyouokay-1 is a trace plot. It shows the sampling behavior of the MCMC algorithm for the model parameters (Intercept, shooting_categoryother, and lat) across four chains. The chains are well-mixed, stationary, and overlap significantly, indicating good convergence and effective exploration of the posterior distributions. It suggests that the model's parameters were sampled effectively, with no immediate signs of convergence issues.
-
-@fig-stanareyouokay-2 is a Rhat plot. This $\hat{R}$ plot shows that all parameters have $\hat{R} \approx 1.00$, indicating excellent convergence of the MCMC chains. The results suggest that the chains are well-mixed, and the posterior distributions can be considered reliable for interpretation.
 
 ```{r}
 #| echo: false
@@ -611,6 +608,12 @@ plot(bayes_model, "trace")
 
 plot(bayes_model, "rhat")
 ```
+
+@fig-stanareyouokay-1 is a trace plot. It shows the sampling behavior of the MCMC algorithm for the model parameters (Intercept, shooting_categoryother, and lat) across four chains. The chains are well-mixed, stationary, and overlap significantly, indicating good convergence and effective exploration of the posterior distributions. It suggests that the model's parameters were sampled effectively, with no immediate signs of convergence issues.
+
+@fig-stanareyouokay-2 is a Rhat plot. This $\hat{R}$ plot shows that all parameters have $\hat{R} \approx 1.00$, indicating excellent convergence of the MCMC chains. The results suggest that the chains are well-mixed, and the posterior distributions can be considered reliable for interpretation.
+
+
 
 \newpage
 
